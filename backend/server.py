@@ -174,7 +174,7 @@ def predict_grid(region_id: str, species_id: str):
     # Get terrain for the center to use for altitude-based temperature adjustment (lapse rate)
     center_terrain = get_terrain_data(center_lat, center_lon)
 
-    grid_points = generate_grid(region_id, 500.0)
+    grid_points = generate_grid(region_id, 250.0)
     features = []
 
     # Process each grid point — parallelized for speed
@@ -205,8 +205,8 @@ def predict_grid(region_id: str, species_id: str):
         if score <= 0:
             return None
 
-        lat_step = 500.0 / 111320.0 / 2
-        lon_step = 500.0 / (111320.0 * math.cos(math.radians(lat))) / 2
+        lat_step = 250.0 / 111320.0 / 2
+        lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
 
         return {
             "type": "Feature",
@@ -224,12 +224,12 @@ def predict_grid(region_id: str, species_id: str):
             },
         }
 
-    # Process each grid point synchronously to prevent rasterio GDAL thread-safety memory leaks
-    features = []
+    # Process each grid point sequentially to prevent GDAL block cache memory leaks
+    # on Render's 512MB free tier instance.
     for lat, lon in grid_points:
-        result = process_point(lat, lon)
-        if result is not None:
-            features.append(result)
+        res = process_point(lat, lon)
+        if res is not None:
+            features.append(res)
 
     return {"type": "FeatureCollection", "features": features}
 
