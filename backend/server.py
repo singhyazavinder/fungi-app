@@ -160,22 +160,22 @@ def predict_point(req: PredictionRequest):
         base_score = 0
         base_tree_type = ""
         for day in range(8):
-            simulated_weather_agg = aggregate_weather_data(weather, day_offset=day)
-            sc, tr = calculate_score(
-                req.species_id,
-                simulated_weather_agg,
-                terrain,
-                soil_ph,
-                community_buzz=buzz_data["buzz_score"],
-                in_forest=in_forest,
-                lat=req.lat,
-                lon=req.lon,
-                region=found_region,
-            )
-            future_scores.append(sc)
-            if day == 0:
-                base_score = sc
-                base_tree_type = tr
+        simulated_weather_agg = aggregate_weather_data(weather, day_offset=day)
+        sc, tr = calculate_score(
+            req.species_id,
+            simulated_weather_agg,
+            terrain,
+            soil_ph,
+            community_buzz=buzz_data["buzz_score"],
+            in_forest=in_forest,
+            lat=req.lat,
+            lon=req.lon,
+            region=found_region,
+        )
+        future_scores.append(sc)
+        if day == 0:
+            base_score = sc
+            base_tree_type = tr
 
     return {
         "lat": req.lat,
