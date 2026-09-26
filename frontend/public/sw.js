@@ -1,15 +1,31 @@
-const CACHE_NAME = 'fungi-cache-v1';
+const CACHE_NAME = 'fungi-cache-v2';
 const urlsToCache = [
   '/',
-  '/index.html'
+  '/index.html',
+  '/style.css',
+  '/main.js',
+  '/images/mushrooms/boletus_aereus.webp',
+  '/images/mushrooms/boletus_aestivalis.webp',
+  '/images/mushrooms/cantharellus_cibarius.webp',
+  '/images/mushrooms/amanita_caesarea.webp',
+  '/images/mushrooms/craterellus_cornucopioides.webp',
+  '/images/mushrooms/morchella_esculenta.webp',
+  '/images/mushrooms/craterellus_tubaeformis.webp',
+  '/images/mushrooms/boletus_pinophilus.webp',
+  '/images/mushrooms/morchella_conica.webp',
+  '/images/mushrooms/russula_cyanoxantha.webp',
+  '/images/mushrooms/macrolepiota_procera.webp',
+  '/images/mushrooms/boletus_edulis.webp',
+  'https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css',
+  'https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 

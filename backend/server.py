@@ -118,28 +118,16 @@ def predict_point(req: PredictionRequest):
             bounds = b
             break
 
-    # If the point is inside a known region, use the fast interpolated data just like the grid
     if bounds:
         center_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2
         center_lon = (bounds["lon_min"] + bounds["lon_max"]) / 2
         
-        regional_weather = get_regional_weather(bounds)
-        center_terrain = get_terrain_data(center_lat, center_lon)
         soil_ph = get_soil_ph(center_lat, center_lon)
         
-        base_weather = interpolate_weather(req.lat, req.lon, regional_weather)
-        elev_diff = terrain["elevation"] - center_terrain["elevation"]
-        
-        # 3. Simulate score for the next 7 days
         future_scores = []
         base_score = 0
         base_tree_type = ""
         
-        # We need to simulate future days, but we only interpolated today's weather.
-        # So we re-fetch the corners for the future day. But this is too slow.
-        # A better way is to just fetch the weather for the specific point since they tapped it,
-        # but the soil pH is what was really slowing it down (7 seconds).
-        # Open-Meteo takes 0.5s which is fine for a tap.
         weather = get_weather_forecast(req.lat, req.lon, terrain["elevation"])
         weather_agg = aggregate_weather_data(weather)
         
@@ -160,33 +148,9 @@ def predict_point(req: PredictionRequest):
             if day == 0:
                 base_score = sc
                 base_tree_type = tr
-
     else:
-        # Fallback if outside known regions
-        soil_ph = get_soil_ph(req.lat, req.lon)
-        weather = get_weather_forecast(req.lat, req.lon, terrain["elevation"])
-        weather_agg = aggregate_weather_data(weather)
-        
-        future_scores = []
-        base_score = 0
-        base_tree_type = ""
-        for day in range(8):
-            simulated_weather_agg = aggregate_weather_data(weather, day_offset=day)
-            sc, tr = calculate_score(
-                req.species_id,
-                simulated_weather_agg,
-                terrain,
-                soil_ph,
-                community_buzz=buzz_data["buzz_score"],
-                in_forest=in_forest,
-                lat=req.lat,
-                lon=req.lon,
-                region=found_region,
-            )
-            future_scores.append(sc)
-            if day == 0:
-                base_score = sc
-                base_tree_type = tr
+        # Do not predict outside supported regions
+        return {"score": 0.0, "message": "Fuori dalle regioni supportate."}
 
     return {
         "lat": req.lat,

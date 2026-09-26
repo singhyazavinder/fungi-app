@@ -317,6 +317,35 @@ const geolocate = new maplibregl.GeolocateControl({
 });
 map.addControl(geolocate, 'top-right');
 
+class GridToggleControl {
+  onAdd(map) {
+    this._map = map;
+    this._container = document.createElement('div');
+    this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const btn = document.createElement('button');
+    btn.className = 'maplibregl-ctrl-icon';
+    btn.type = 'button';
+    btn.title = 'Toggle Grids';
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>`;
+    btn.style.fontSize = '16px';
+    btn.style.display = 'flex';
+    btn.style.justifyContent = 'center';
+    btn.style.alignItems = 'center';
+    btn.onclick = () => {
+      showDynamicGrid = !showDynamicGrid;
+      btn.style.opacity = showDynamicGrid ? '1' : '0.5';
+      updateDynamicGrid();
+    };
+    this._container.appendChild(btn);
+    return this._container;
+  }
+  onRemove() {
+    this._container.parentNode.removeChild(this._container);
+    this._map = undefined;
+  }
+}
+map.addControl(new GridToggleControl(), 'top-right');
+
 let marker = null;
 let currentPopup = null;
 
@@ -392,23 +421,159 @@ function setMapStyle(type) {
 
 
 
-// Re-add grids when style finishes loading
+const REGIONS = {
+  "asiago": {"lat_min": 45.80, "lat_max": 45.95, "lon_min": 11.40, "lon_max": 11.60},
+  "recoaro": {"lat_min": 45.65, "lat_max": 45.75, "lon_min": 11.15, "lon_max": 11.25},
+  "lavarone": {"lat_min": 45.90, "lat_max": 46.00, "lon_min": 11.20, "lon_max": 11.35},
+};
+
+function drawRegionBorders() {
+  const features = Object.values(REGIONS).map(b => ({
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[
+        [b.lon_min, b.lat_min],
+        [b.lon_max, b.lat_min],
+        [b.lon_max, b.lat_max],
+        [b.lon_min, b.lat_max],
+        [b.lon_min, b.lat_min]
+      ]]
+    }
+  }));
+
+  if (map.getSource('region-borders')) {
+    map.getSource('region-borders').setData({ type: 'FeatureCollection', features });
+  } else {
+    map.addSource('region-borders', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features }
+    });
+    map.addLayer({
+      id: 'region-borders-line',
+      type: 'line',
+      source: 'region-borders',
+      paint: {
+        'line-color': '#e53935',
+        'line-width': 2,
+        'line-dasharray': [2, 2],
+        'line-opacity': 0.7
+      }
+    });
+  }
+}
+
+let showDynamicGrid = true;
+
+function getClosestRegion(lat, lng) {
+  let closest = null;
+  let minDist = Infinity;
+  for (const [name, b] of Object.entries(REGIONS)) {
+    const rLat = (b.lat_min + b.lat_max) / 2;
+    const rLng = (b.lon_min + b.lon_max) / 2;
+    const dist = Math.pow(lat - rLat, 2) + Math.pow(lng - rLng, 2);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = b;
+    }
+  }
+  return closest;
+}
+
+function updateDynamicGrid() {
+  if (map.getZoom() < 10 || !showDynamicGrid) {
+    if (map.getSource('dynamic-grid')) {
+      map.getSource('dynamic-grid').setData({type: 'FeatureCollection', features: []});
+    }
+    return;
+  }
+
+  const bounds = map.getBounds();
+  const latMin = bounds.getSouth();
+  const latMax = bounds.getNorth();
+  const lonMin = bounds.getWest();
+  const lonMax = bounds.getEast();
+
+  if (latMax - latMin > 1.5 || lonMax - lonMin > 1.5) return;
+
+  const centerLat = (latMin + latMax) / 2;
+  const centerLng = (lonMin + lonMax) / 2;
+  const region = getClosestRegion(centerLat, centerLng);
+
+  const GRID_SIZE = 250;
+  const meters_per_deg_lat = 111320;
+  const latStep = GRID_SIZE / meters_per_deg_lat;
+  
+  const avg_lat = (region.lat_min + region.lat_max) / 2;
+  const lonStep = GRID_SIZE / (meters_per_deg_lat * Math.cos(avg_lat * Math.PI / 180));
+
+  // The backend centers polygons ON the grid points which start at region.lat_min.
+  // So the grid lines (polygon edges) are offset by -latStep/2 and -lonStep/2
+  const latOrigin = region.lat_min - latStep / 2;
+  const lonOrigin = region.lon_min - lonStep / 2;
+
+  const features = [];
+  
+  const latStartIdx = Math.floor((latMin - latOrigin) / latStep);
+  const latStart = latOrigin + latStartIdx * latStep;
+  
+  for (let lat = latStart; lat <= latMax + latStep; lat += latStep) {
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [[lonMin, lat], [lonMax, lat]] }
+    });
+  }
+
+  const lonStartIdx = Math.floor((lonMin - lonOrigin) / lonStep);
+  const lonStart = lonOrigin + lonStartIdx * lonStep;
+
+  for (let lon = lonStart; lon <= lonMax + lonStep; lon += lonStep) {
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [[lon, latMin], [lon, latMax]] }
+    });
+  }
+
+  const fc = { type: 'FeatureCollection', features };
+
+  if (map.getSource('dynamic-grid')) {
+    map.getSource('dynamic-grid').setData(fc);
+  } else {
+    map.addSource('dynamic-grid', { type: 'geojson', data: fc });
+    map.addLayer({
+      id: 'dynamic-grid-line',
+      type: 'line',
+      source: 'dynamic-grid',
+      paint: {
+        'line-color': 'rgba(128, 128, 128, 0.5)',
+        'line-width': 1
+      }
+    });
+  }
+}
+
+map.on('moveend', updateDynamicGrid);
+map.on('zoomend', updateDynamicGrid);
+
+// Re-add grids and borders when style finishes loading
 map.on('styledata', () => {
   if (!map.getSource('predictions')) {
       loadRegionGrid();
+  }
+  if (!map.getSource('region-borders') && map.isStyleLoaded()) {
+      drawRegionBorders();
+  }
+  if (!map.getSource('dynamic-grid') && map.isStyleLoaded()) {
+      updateDynamicGrid();
   }
 });
 
 // Handle Map Clicks
 map.on('click', async (e) => {
   let { lng, lat } = e.lngLat;
+  
   const features = map.queryRenderedFeatures(e.point, { layers: ['predictions-fill'] });
   let clickedScore = null;
-
-  // Only calculate prediction if the user clicked on one of our drawn grids
-  if (features.length === 0) {
-    return;
-  }
 
   if (features.length > 0) {
     clickedScore = features[0].properties.score;
@@ -416,21 +581,97 @@ map.on('click', async (e) => {
     // Calculate the exact center of the grid box polygon
     const coords = features[0].geometry.coordinates[0];
     let sumLng = 0, sumLat = 0;
-    // The polygon has 5 points (the 5th closes the loop), we average the first 4 corners
     for (let i = 0; i < 4; i++) {
       sumLng += coords[i][0];
       sumLat += coords[i][1];
     }
     lng = sumLng / 4;
     lat = sumLat / 4;
+  } else {
+    // 250m grid math for offline or transparent (0 score) areas
+    const GRID_SIZE = 250;
+    const meters_per_deg_lat = 111320;
+    
+    const region = getClosestRegion(lat, lng);
+    const avg_lat = (region.lat_min + region.lat_max) / 2;
+    const lat_step = GRID_SIZE / meters_per_deg_lat;
+    const lon_step = GRID_SIZE / (meters_per_deg_lat * Math.cos(avg_lat * Math.PI / 180));
+    
+    const latOrigin = region.lat_min - lat_step / 2;
+    const lonOrigin = region.lon_min - lon_step / 2;
+    
+    const lat_idx = Math.floor((lat - latOrigin) / lat_step);
+    const lon_idx = Math.floor((lng - lonOrigin) / lon_step);
+    
+    lat = latOrigin + (lat_idx + 0.5) * lat_step;
+    lng = lonOrigin + (lon_idx + 0.5) * lon_step;
+    
+    // Draw the borderline for the clicked grid square
+    const minLat = latOrigin + lat_idx * lat_step;
+    const maxLat = latOrigin + (lat_idx + 1) * lat_step;
+    const minLng = lonOrigin + lon_idx * lon_step;
+    const maxLng = lonOrigin + (lon_idx + 1) * lon_step;
+    
+    const cellPolygon = {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [minLng, minLat], [maxLng, minLat],
+            [maxLng, maxLat], [minLng, maxLat],
+            [minLng, minLat]
+          ]]
+        }
+      }]
+    };
+    
+    if (map.getSource('tapped-grid')) {
+      map.getSource('tapped-grid').setData(cellPolygon);
+    } else {
+      map.addSource('tapped-grid', { type: 'geojson', data: cellPolygon });
+      map.addLayer({
+        id: 'tapped-grid-line',
+        type: 'line',
+        source: 'tapped-grid',
+        paint: { 'line-color': '#ffb300', 'line-width': 2 }
+      });
+    }
   }
 
-  await fetchPrediction(lat, lng, clickedScore);
+  let isInside = false;
+  for (const b of Object.values(REGIONS)) {
+    if (lat >= b.lat_min && lat <= b.lat_max && lng >= b.lon_min && lng <= b.lon_max) {
+      isInside = true;
+      break;
+    }
+  }
+
+  if (!isInside) {
+    if (currentPopup) currentPopup.remove();
+    currentPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '380px' })
+      .setLngLat([lng, lat])
+      .addTo(map);
+      
+    if (marker) marker.remove();
+    marker = new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
+    
+    renderPrediction({ 
+      score: 0.0, 
+      message: "Fuori dalle regioni supportate. Aggiungi il tuo ritrovamento locale!", 
+      lat: lat, 
+      lon: lng 
+    });
+  } else {
+    await fetchPrediction(lat, lng, clickedScore);
+  }
 });
 
-// Load grids automatically on map load
+// Load grids and borders automatically on map load
 map.on('load', () => {
   loadRegionGrid();
+  drawRegionBorders();
 });
 
 let selectedRegion = 'asiago'; // default region
@@ -1099,52 +1340,55 @@ renderSpeciesCards();
 let isFetchingGrids = false;
 const gridCache = {};
 
+function updateMapPredictions() {
+  const aggregatedFeatures = [];
+  for (const key in gridCache) {
+    if (key.startsWith(`${currentSpeciesId}_`)) {
+      aggregatedFeatures.push(...gridCache[key].features);
+    }
+  }
+  const combinedGeoJSON = {
+    type: 'FeatureCollection',
+    features: aggregatedFeatures
+  };
+  
+  if (map.getSource('predictions')) {
+    map.getSource('predictions').setData(combinedGeoJSON);
+  } else {
+    addPredictionLayer(combinedGeoJSON);
+  }
+}
+
 async function loadRegionGrid() {
   if (isFetchingGrids) return;
   if (!currentSpeciesId) return;
 
-  // Check cache first
   const cacheKey = `${currentSpeciesId}_${selectedRegion}`;
+  
+  // Check cache first
   if (gridCache[cacheKey]) {
-    const cachedData = gridCache[cacheKey];
-    if (map.getSource('predictions')) {
-      map.getSource('predictions').setData(cachedData);
-    } else {
-      addPredictionLayer(cachedData);
-    }
+    updateMapPredictions();
     return;
   }
 
   isFetchingGrids = true;
   document.getElementById('loading-overlay').style.display = 'flex';
 
-  const speciesId = currentSpeciesId;
-  const regions = ['asiago', 'recoaro', 'lavarone'];
-
   try {
-    const allFeatures = [];
-
-    // Fetch only the selected region to prevent Render memory limit crashes
-    const res = await fetch(`${API_URL}/predict/grid/${selectedRegion}/${speciesId}`);
+    // Fetch only the selected region
+    const res = await fetch(`${API_URL}/predict/grid/${selectedRegion}/${currentSpeciesId}`);
     const geojson = res.ok ? await res.json() : null;
 
     if (geojson && geojson.features) {
-      allFeatures.push(...geojson.features);
-    }
-
-    const combinedGeoJSON = {
-      type: 'FeatureCollection',
-      features: allFeatures
-    };
-
-    // Cache the result for this specific region + species combination
-    gridCache[`${speciesId}_${selectedRegion}`] = combinedGeoJSON;
-
-    if (map.getSource('predictions')) {
-      map.getSource('predictions').setData(combinedGeoJSON);
+      gridCache[cacheKey] = {
+        type: 'FeatureCollection',
+        features: geojson.features
+      };
     } else {
-      addPredictionLayer(combinedGeoJSON);
+      gridCache[cacheKey] = { type: 'FeatureCollection', features: [] };
     }
+
+    updateMapPredictions();
 
   } catch (err) {
     console.error("Failed to load grids", err);
@@ -1227,8 +1471,33 @@ async function fetchPrediction(lat, lon, forcedScore = null) {
 function renderPrediction(data) {
   const t = i18n[currentLang];
 
-  if (data.score === 0.0 && data.message) {
-    if (currentPopup) currentPopup.setHTML(`<p style="padding: 10px;">${data.message}</p>`);
+  if (data.score === 0.0 || (data.score === 0.0 && data.message)) {
+    const msg = data.message || "Condizioni non adatte in quest'area.";
+    const swipeHTML = `
+      <div style="max-height: 550px; overflow-y: auto; overflow-x: hidden; padding-right: 8px; color: var(--text-dark);">
+        <p style="padding: 10px; font-weight: bold; text-align: center; margin: 0;">${msg}</p>
+        <h3 style="font-size: 0.9rem; margin-top: 15px; margin-bottom: 5px;">${t.found}</h3>
+        <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-top: 5px; scrollbar-width: none; -ms-overflow-style: none;">
+          ${SPECIES_DATA.map(sp => {
+            const spName = sp.name[currentLang] || sp.name['en'];
+            return `
+              <div data-species="${sp.id}" style="min-width: 65px; max-width: 65px; text-align: center; cursor: pointer; user-select: none;" 
+                   onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
+                <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
+                <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
+              </div>
+            `;
+          }).join('')}
+          <div style="min-width: 80px; max-width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 5px;">
+            <input type="text" id="custom-mushroom-input" placeholder="Other..." maxlength="30" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; text-align: center; margin-bottom: 5px; outline: none; box-sizing: border-box;" 
+                   onkeypress="if(event.key === 'Enter') { handleCustomMushroom(this.value, ${data.lat}, ${data.lon}); this.value = ''; }">
+            <button onclick="let v = document.getElementById('custom-mushroom-input').value; if(v) { handleCustomMushroom(v, ${data.lat}, ${data.lon}); document.getElementById('custom-mushroom-input').value = ''; }" 
+                    style="font-size: 10px; padding: 4px 8px; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; width: 100%;">+ Add</button>
+          </div>
+        </div>
+      </div>
+    `;
+    if (currentPopup) currentPopup.setHTML(swipeHTML);
     return;
   }
 
@@ -1308,7 +1577,7 @@ function renderPrediction(data) {
       </tr>
         <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 2px 0;">${t.popup_soil_moist}</td>
-        <td style="text-align: right; font-weight: bold;">${(data.weather_summary?.current_soil_moisture || 0).toFixed(2)} m³/m³</td>
+        <td style="text-align: right; font-weight: bold;">${Math.round((data.weather_summary?.current_soil_moisture || 0) * 100)}%</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 2px 0;">${t.popup_air_humid}</td>
@@ -1343,6 +1612,14 @@ function renderPrediction(data) {
           </div>
         `;
       }).join('')}
+      
+      <!-- Custom Mushroom Input -->
+      <div style="min-width: 80px; max-width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 5px;">
+        <input type="text" id="custom-mushroom-input" placeholder="Other..." maxlength="30" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; text-align: center; margin-bottom: 5px; outline: none; box-sizing: border-box;" 
+               onkeypress="if(event.key === 'Enter') { handleCustomMushroom(this.value, ${data.lat}, ${data.lon}); this.value = ''; }">
+        <button onclick="let v = document.getElementById('custom-mushroom-input').value; if(v) { handleCustomMushroom(v, ${data.lat}, ${data.lon}); document.getElementById('custom-mushroom-input').value = ''; }" 
+                style="font-size: 10px; padding: 4px 8px; border-radius: 6px; border: none; background: var(--primary); color: white; cursor: pointer; width: 100%;">+ Add</button>
+      </div>
     </div>
     </div>
   `;
@@ -1574,6 +1851,28 @@ function updateOnlineStatus() {
     offlineIndicator.style.display = navigator.onLine ? 'none' : 'block';
   }
 }
+
+window.handleCustomMushroom = function(val, lat, lon) {
+  val = val.trim();
+  if (!val) return;
+  // Format as a custom species_id
+  const species_id = val.toLowerCase().replace(/\\s+/g, '_');
+  
+  window.recordSighting(lat, lon, species_id, 'found');
+  
+  // Show quick visual feedback
+  const input = document.getElementById('custom-mushroom-input');
+  if (input && input.nextElementSibling) {
+    const btn = input.nextElementSibling;
+    const oldText = btn.innerText;
+    btn.innerText = "Added ✓";
+    btn.style.background = "#4caf50";
+    setTimeout(() => {
+      btn.innerText = oldText;
+      btn.style.background = "var(--primary)";
+    }, 2000);
+  }
+};
 
 window.recordSighting = async function(lat, lon, species_id, action) {
   const record = { lat, lon, species_id, action, username: userName, timestamp: new Date().toISOString() };
