@@ -797,8 +797,17 @@ function renderSpeciesCards() {
       setTimeout(() => { if (map) map.resize(); }, 50); // Important: Resize mapLibre after display: block
 
       if (marker) {
-        const lngLat = marker.getLngLat();
-        fetchPrediction(lngLat.lat, lngLat.lng);
+        marker.remove();
+        marker = null;
+      }
+      if (currentPopup) {
+        currentPopup.remove();
+        currentPopup = null;
+      }
+      const predPanel = document.getElementById('prediction-panel');
+      if (predPanel) {
+        const t = TRANSLATIONS[currentLang];
+        predPanel.innerHTML = `<p>${t.click_map}</p>`;
       }
       fetchAllGrids();
     };
@@ -877,6 +886,7 @@ async function fetchAllGrids() {
   if (isFetchingGrids) return;
   if (!currentSpeciesId) return; // Wait for user selection
   isFetchingGrids = true;
+  document.getElementById('loading-overlay').style.display = 'flex';
 
   const speciesId = currentSpeciesId;
   const regions = ['asiago', 'recoaro', 'lavarone'];
@@ -941,6 +951,7 @@ async function fetchAllGrids() {
     console.error("Failed to load grids", err);
   } finally {
     isFetchingGrids = false;
+    document.getElementById('loading-overlay').style.display = 'none';
   }
 }
 

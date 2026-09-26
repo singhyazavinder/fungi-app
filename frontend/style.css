@@ -806,4 +806,4 @@ body.dark-mode .my-location-dot {
   .maplibregl-ctrl-top-right {
     margin-right: 5px !important;
   }
-}
+}@keyframes spin { 100% { transform: rotate(360deg); } }

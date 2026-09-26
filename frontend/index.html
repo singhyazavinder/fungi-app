@@ -104,6 +104,13 @@
 
     <!-- Map Container -->
     <main id="map-container" style="position: relative;">
+      
+      <!-- Loading Overlay -->
+      <div id="loading-overlay" class="loading-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white;">
+        <div class="spinner" style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p id="lbl-loading" style="margin-top: 16px; font-weight: bold; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Analyzing Terrain Data...</p>
+      </div>
+
       <!-- Mobile Back Button (Top Left, avoids notch) -->
       <button id="btn-mobile-back" class="btn btn-primary" style="display: none; position: absolute; top: max(20px, env(safe-area-inset-top)); left: 20px; width: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-radius: 30px; padding: 10px 20px;">
         ← Scegli Fungo
