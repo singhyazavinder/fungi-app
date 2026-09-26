@@ -417,7 +417,7 @@ def load_region_image(region: str):
         bbox = f"{bounds['lon_min']},{bounds['lat_min']},{bounds['lon_max']},{bounds['lat_max']}"
         url = (
             "https://image.discomap.eea.europa.eu/arcgis/rest/services/Corine/CLC2018_WM/MapServer/export?"
-            f"bbox={bbox}&bboxSR=4326&imageSR=4326&size=4000,4000&dpi=300&format=png&f=image"
+            f"bbox={bbox}&bboxSR=4326&imageSR=4326&size=400,400&dpi=96&format=png&f=image"
         )
         response = requests.get(url, timeout=30)
         response.raise_for_status()
