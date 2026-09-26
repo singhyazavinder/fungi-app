@@ -1,3 +1,7 @@
+import math
+from datetime import datetime
+import data_services
+
 SPECIES_PROFILES = {
     "boletus_edulis": {
         "name_it": "Porcino",
@@ -308,7 +312,7 @@ WEIGHTS = {
         "community": 0.08,
     },
 }
-from datetime import datetime
+
 
 
 def calculate_score(
@@ -390,7 +394,6 @@ def calculate_score(
 
     # Aspect (slope direction) and Slope
     # Mushrooms typically prefer North/North-East (0-90 degrees) for moisture retention
-    import math
 
     aspect = terrain.get("aspect", 0)
     slope = terrain.get("slope", 0)
@@ -423,7 +426,7 @@ def calculate_score(
 
     # --- COPERNICUS CORINE LAND COVER (CLC) FILTER ---
     # Retrieve the absolute truth of tree types at this exact pixel from Copernicus satellite data
-    import data_services
+
 
     eco_type = profile.get("eco_type", "facultative")
     primary_trees = profile.get("primary_trees", [])
@@ -508,3 +511,32 @@ REGIONS = {
         "lon_max": 11.35,
     },
 }
+
+
+def generate_grid(region_name: str, step_m: float = 250.0):
+    """
+    Generate a grid of lat/lon points for a given region.
+    step_m is the distance between points in meters.
+    """
+    if region_name not in REGIONS:
+        return []
+
+    bounds = REGIONS[region_name]
+
+    # 1 degree of latitude is ~111,320 meters
+    lat_step = step_m / 111320.0
+
+    # 1 degree of longitude is ~111,320 * cos(lat) meters
+    avg_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2.0
+    lon_step = step_m / (111320.0 * math.cos(math.radians(avg_lat)))
+
+    grid = []
+    lat = bounds["lat_min"]
+    while lat <= bounds["lat_max"]:
+        lon = bounds["lon_min"]
+        while lon <= bounds["lon_max"]:
+            grid.append((round(lat, 5), round(lon, 5)))
+            lon += lon_step
+        lat += lat_step
+
+    return grid

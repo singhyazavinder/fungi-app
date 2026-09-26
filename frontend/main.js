@@ -51,6 +51,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('panel-species').style.display = 'flex';
     document.getElementById('panel-details').style.display = 'none';
   });
+
+  document.getElementById('btn-streets').addEventListener('click', () => setMapStyle('streets'));
+  document.getElementById('btn-satellite').addEventListener('click', () => setMapStyle('satellite'));
+  document.getElementById('btn-streets-mobile').addEventListener('click', () => setMapStyle('streets'));
+  document.getElementById('btn-satellite-mobile').addEventListener('click', () => setMapStyle('satellite'));
+
+  applyTranslations();
 });
 
 // Translations
@@ -87,7 +94,33 @@ const i18n = {
     vault_title: "🍄 Fungi Vault",
     vault_subtitle: "Inserisci la password segreta per sbloccare.",
     vault_btn: "Sblocca",
-    vault_err: "Password errata. Connessione rifiutata dal server."
+    vault_err: "Password errata. Connessione rifiutata dal server.",
+    popup_title: "Dettagli del biotopo",
+    popup_structure: "Struttura dell'ambiente",
+    popup_altitude: "⛰️ Altitudine media",
+    popup_soil_ph: "💧 pH del suolo",
+    popup_soil_temp: "🌡️ Temp. suolo",
+    popup_soil_moist: "🌱 Umidità suolo",
+    popup_air_humid: "💦 Umidità aria",
+    popup_rain_7d: "🌧️ Pioggia (ultimi 7gg)",
+    popup_trees: "Essenze dominanti",
+    popup_forecast: "Potenziale 7 giorni",
+    popup_zone: "Zona",
+    popup_optimal: "ottimale",
+    popup_good: "buono",
+    popup_medium: "medio",
+    popup_poor: "scarso",
+    popup_today: "OGGI",
+    popup_loading: "Analisi del terreno in corso...",
+    popup_broadleaved_1: "faggio comune",
+    popup_broadleaved_2: "castagno",
+    popup_broadleaved_3: "roverella",
+    popup_conifer_1: "abete rosso",
+    popup_conifer_2: "pino silvestre",
+    popup_conifer_3: "larice",
+    popup_mixed_1: "faggio comune",
+    popup_mixed_2: "abete rosso",
+    popup_mixed_3: "orniello"
   },
   en: {
     lbl_species: "Select Species:",
@@ -121,7 +154,33 @@ const i18n = {
     vault_title: "🍄 Fungi Vault",
     vault_subtitle: "Enter your shared secret password to unlock.",
     vault_btn: "Unlock",
-    vault_err: "Incorrect password. Connection refused by server."
+    vault_err: "Incorrect password. Connection refused by server.",
+    popup_title: "Biotope Details",
+    popup_structure: "Environment Structure",
+    popup_altitude: "⛰️ Average Altitude",
+    popup_soil_ph: "💧 Soil pH",
+    popup_soil_temp: "🌡️ Soil Temp.",
+    popup_soil_moist: "🌱 Soil Moisture",
+    popup_air_humid: "💦 Air Humidity",
+    popup_rain_7d: "🌧️ Rain (last 7 days)",
+    popup_trees: "Dominant Tree Species",
+    popup_forecast: "7-Day Potential",
+    popup_zone: "Zone",
+    popup_optimal: "optimal",
+    popup_good: "good",
+    popup_medium: "medium",
+    popup_poor: "poor",
+    popup_today: "TODAY",
+    popup_loading: "Analyzing terrain data...",
+    popup_broadleaved_1: "common beech",
+    popup_broadleaved_2: "chestnut",
+    popup_broadleaved_3: "downy oak",
+    popup_conifer_1: "Norway spruce",
+    popup_conifer_2: "Scots pine",
+    popup_conifer_3: "larch",
+    popup_mixed_1: "common beech",
+    popup_mixed_2: "Norway spruce",
+    popup_mixed_3: "manna ash"
   },
   hi: {
     lbl_species: "प्रजाति चुनें:",
@@ -155,11 +214,37 @@ const i18n = {
     vault_title: "🍄 फंगी वॉल्ट",
     vault_subtitle: "अनलॉक करने के लिए अपना साझा गुप्त पासवर्ड दर्ज करें।",
     vault_btn: "अनलॉक",
-    vault_err: "गलत पासवर्ड। सर्वर द्वारा कनेक्शन अस्वीकृत।"
+    vault_err: "गलत पासवर्ड। सर्वर द्वारा कनेक्शन अस्वीकृत।",
+    popup_title: "बायोटोप विवरण",
+    popup_structure: "पर्यावरण संरचना",
+    popup_altitude: "⛰️ औसत ऊंचाई",
+    popup_soil_ph: "💧 मिट्टी का pH",
+    popup_soil_temp: "🌡️ मिट्टी का तापमान",
+    popup_soil_moist: "🌱 मिट्टी की नमी",
+    popup_air_humid: "💦 हवा की नमी",
+    popup_rain_7d: "🌧️ वर्षा (पिछले 7 दिन)",
+    popup_trees: "प्रमुख वृक्ष प्रजातियाँ",
+    popup_forecast: "7-दिन की क्षमता",
+    popup_zone: "क्षेत्र",
+    popup_optimal: "इष्टतम",
+    popup_good: "अच्छा",
+    popup_medium: "मध्यम",
+    popup_poor: "कम",
+    popup_today: "आज",
+    popup_loading: "भूमि डेटा का विश्लेषण हो रहा है...",
+    popup_broadleaved_1: "सामान्य बीच",
+    popup_broadleaved_2: "चेस्टनट",
+    popup_broadleaved_3: "डाउनी ओक",
+    popup_conifer_1: "नॉर्वे स्प्रूस",
+    popup_conifer_2: "स्कॉट्स पाइन",
+    popup_conifer_3: "लार्च",
+    popup_mixed_1: "सामान्य बीच",
+    popup_mixed_2: "नॉर्वे स्प्रूस",
+    popup_mixed_3: "मन्ना ऐश"
   }
 };
 
-let currentLang = 'en';
+let currentLang = 'it';
 
 const STYLE_STREETS = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const STYLE_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -281,12 +366,7 @@ function setMapStyle(type) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('btn-streets').addEventListener('click', () => setMapStyle('streets'));
-  document.getElementById('btn-satellite').addEventListener('click', () => setMapStyle('satellite'));
-  document.getElementById('btn-streets-mobile').addEventListener('click', () => setMapStyle('streets'));
-  document.getElementById('btn-satellite-mobile').addEventListener('click', () => setMapStyle('satellite'));
-});
+
 
 // Re-add grids when style finishes loading
 map.on('styledata', () => {
@@ -806,7 +886,7 @@ function renderSpeciesCards() {
       }
       const predPanel = document.getElementById('prediction-panel');
       if (predPanel) {
-        const t = TRANSLATIONS[currentLang];
+        const t = i18n[currentLang];
         predPanel.innerHTML = `<p>${t.click_map}</p>`;
       }
       fetchAllGrids();
@@ -881,10 +961,23 @@ document.getElementById('btn-back').addEventListener('click', () => {
 renderSpeciesCards();
 
 let isFetchingGrids = false;
+const gridCache = {};
 
 async function fetchAllGrids() {
   if (isFetchingGrids) return;
-  if (!currentSpeciesId) return; // Wait for user selection
+  if (!currentSpeciesId) return;
+
+  // Check cache first
+  if (gridCache[currentSpeciesId]) {
+    const cachedData = gridCache[currentSpeciesId];
+    if (map.getSource('predictions')) {
+      map.getSource('predictions').setData(cachedData);
+    } else {
+      addPredictionLayer(cachedData);
+    }
+    return;
+  }
+
   isFetchingGrids = true;
   document.getElementById('loading-overlay').style.display = 'flex';
 
@@ -912,39 +1005,13 @@ async function fetchAllGrids() {
       features: allFeatures
     };
 
+    // Cache the result for instant switching
+    gridCache[speciesId] = combinedGeoJSON;
+
     if (map.getSource('predictions')) {
       map.getSource('predictions').setData(combinedGeoJSON);
     } else {
-      map.addSource('predictions', {
-        type: 'geojson',
-        data: combinedGeoJSON
-      });
-
-      const style = map.getStyle();
-      let beforeId = undefined;
-      if (style && style.layers) {
-        const symbolLayer = style.layers.find(l => l.type === 'symbol');
-        if (symbolLayer) beforeId = symbolLayer.id;
-      }
-
-      map.addLayer({
-        'id': 'predictions-fill',
-        'type': 'fill',
-        'source': 'predictions',
-        'paint': {
-          'fill-color': [
-            'step',
-            ['get', 'score'],
-            'rgba(106, 27, 154, 0.0)',   // 0: Transparent
-            0.01, 'rgba(206, 147, 216, 0.6)', // 1-40%
-            0.41, 'rgba(156, 39, 176, 0.7)',   // 41-60%
-            0.61, 'rgba(106, 27, 154, 0.85)',  // 61-80%
-            0.81, 'rgba(74, 20, 140, 1.0)'    // 81-100%
-          ],
-          'fill-opacity': 1.0,
-          'fill-outline-color': 'rgba(0, 0, 0, 0.15)'
-        }
-      }, beforeId);
+      addPredictionLayer(combinedGeoJSON);
     }
 
   } catch (err) {
@@ -953,6 +1020,39 @@ async function fetchAllGrids() {
     isFetchingGrids = false;
     document.getElementById('loading-overlay').style.display = 'none';
   }
+}
+
+function addPredictionLayer(geojsonData) {
+  map.addSource('predictions', {
+    type: 'geojson',
+    data: geojsonData
+  });
+
+  const style = map.getStyle();
+  let beforeId = undefined;
+  if (style && style.layers) {
+    const symbolLayer = style.layers.find(l => l.type === 'symbol');
+    if (symbolLayer) beforeId = symbolLayer.id;
+  }
+
+  map.addLayer({
+    'id': 'predictions-fill',
+    'type': 'fill',
+    'source': 'predictions',
+    'paint': {
+      'fill-color': [
+        'step',
+        ['get', 'score'],
+        'rgba(106, 27, 154, 0.0)',
+        0.01, 'rgba(206, 147, 216, 0.6)',
+        0.41, 'rgba(156, 39, 176, 0.7)',
+        0.61, 'rgba(106, 27, 154, 0.85)',
+        0.81, 'rgba(74, 20, 140, 1.0)'
+      ],
+      'fill-opacity': 1.0,
+      'fill-outline-color': 'rgba(0, 0, 0, 0.15)'
+    }
+  }, beforeId);
 }
 
 async function fetchPrediction(lat, lon, forcedScore = null) {
@@ -1001,55 +1101,37 @@ function renderPrediction(data) {
   }
 
   const scorePct = Math.round(data.score * 100);
-  let scoreColor = '#ce93d8'; // Basso / Medio
-  let scoreText = 'Scarso';
+  let scoreColor = '#ce93d8';
+  let scoreText = t.popup_poor;
 
-  if (scorePct >= 80) { scoreColor = '#4a148c'; scoreText = 'Ottimale'; }
-  else if (scorePct >= 60) { scoreColor = '#6a1b9a'; scoreText = 'Buono'; }
-  else if (scorePct >= 40) { scoreColor = '#9c27b0'; scoreText = 'Medio'; }
+  if (scorePct >= 80) { scoreColor = '#4a148c'; scoreText = t.popup_optimal; }
+  else if (scorePct >= 60) { scoreColor = '#6a1b9a'; scoreText = t.popup_good; }
+  else if (scorePct >= 40) { scoreColor = '#9c27b0'; scoreText = t.popup_medium; }
 
   // Convert Corine string to a simulated percentage list for the premium look
-  let treeList = data.tree_type || 'Nessun albero rilevato';
+  let treeList = data.tree_type || 'Unknown';
   let treeHTML = '';
   if (treeList.includes('Broadleaved')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>faggio comune</span><span style="font-weight: bold;">45%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>castagno</span><span style="font-weight: bold;">35%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>roverella</span><span style="font-weight: bold;">20%</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_1}</span><span style="font-weight: bold;">45%</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_2}</span><span style="font-weight: bold;">35%</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_3}</span><span style="font-weight: bold;">20%</span></div>`;
   } else if (treeList.includes('Coniferous')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>abete rosso</span><span style="font-weight: bold;">60%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>pino silvestre</span><span style="font-weight: bold;">30%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>larice</span><span style="font-weight: bold;">10%</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_1}</span><span style="font-weight: bold;">60%</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_2}</span><span style="font-weight: bold;">30%</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_3}</span><span style="font-weight: bold;">10%</span></div>`;
   } else if (treeList.includes('Mixed')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>faggio comune</span><span style="font-weight: bold;">40%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>abete rosso</span><span style="font-weight: bold;">40%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>orniello</span><span style="font-weight: bold;">20%</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_1}</span><span style="font-weight: bold;">40%</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_2}</span><span style="font-weight: bold;">40%</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_3}</span><span style="font-weight: bold;">20%</span></div>`;
   } else {
     treeHTML = `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${treeList}</span><span style="font-weight: bold;">100%</span></div>`;
   }
 
-  // Calculate Aspect string (N, NE, etc)
-  const deg = data.terrain.aspect;
-  let aspectStr = "N";
-  if (deg > 22.5 && deg <= 67.5) aspectStr = "NE";
-  else if (deg > 67.5 && deg <= 112.5) aspectStr = "E";
-  else if (deg > 112.5 && deg <= 157.5) aspectStr = "SE";
-  else if (deg > 157.5 && deg <= 202.5) aspectStr = "S";
-  else if (deg > 202.5 && deg <= 247.5) aspectStr = "SO";
-  else if (deg > 247.5 && deg <= 292.5) aspectStr = "O";
-  else if (deg > 292.5 && deg <= 337.5) aspectStr = "NO";
-
-  // Calculate Slope string
-  const slope = data.terrain.slope;
-  let slopeStr = "Piana";
-  if (slope > 5 && slope <= 15) slopeStr = "Lieve";
-  else if (slope > 15 && slope <= 30) slopeStr = "Moderata";
-  else if (slope > 30) slopeStr = "Ripida";
-
   const today = new Date();
-  const days = ['OGGI'];
+  const days = [t.popup_today];
   for (let i = 1; i < 8; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
@@ -1060,7 +1142,7 @@ function renderPrediction(data) {
     <div style="max-height: 550px; overflow-y: auto; overflow-x: hidden; padding-right: 8px; color: var(--text-dark);">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
         <div>
-          <h2 style="margin: 0; font-size: 1.2rem;">Dettagli del biotopo</h2>
+          <h2 style="margin: 0; font-size: 1.2rem;">${t.popup_title}</h2>
         </div>
       </div>
     
@@ -1075,44 +1157,44 @@ function renderPrediction(data) {
         <span style="font-size: 1.8rem; line-height: 1; margin-top: 5px;">${scorePct}</span>
         <span style="font-size: 0.65rem; border-top: 1px solid rgba(255,255,255,0.5); padding-top: 2px; margin-top: 2px; width: 75%; text-align: center;">/100</span>
       </div>
-      <span style="margin-top: 5px; font-weight: bold; font-size: 0.85rem;">Zona ${scoreText.toLowerCase()}</span>
+      <span style="margin-top: 5px; font-weight: bold; font-size: 0.85rem;">${t.popup_zone} ${scoreText.toLowerCase()}</span>
     </div>
     
-    <h3 style="font-size: 0.9rem; margin-bottom: 5px; border-bottom: 2px solid var(--border); padding-bottom: 3px;">Struttura dell'ambiente</h3>
+    <h3 style="font-size: 0.9rem; margin-bottom: 5px; border-bottom: 2px solid var(--border); padding-bottom: 3px;">${t.popup_structure}</h3>
     <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 10px;">
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">⛰️ Altitudine media</td>
+        <td style="padding: 2px 0;">${t.popup_altitude}</td>
         <td style="text-align: right; font-weight: bold;">${Math.round(data.terrain.elevation)} m</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">💧 pH del suolo</td>
+        <td style="padding: 2px 0;">${t.popup_soil_ph}</td>
         <td style="text-align: right; font-weight: bold;">${(data.soil_ph || 0).toFixed(1)}</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">🌡️ Temp. suolo</td>
+        <td style="padding: 2px 0;">${t.popup_soil_temp}</td>
         <td style="text-align: right; font-weight: bold;">${(data.weather_summary?.current_soil_temp_6cm || 0).toFixed(1)} °C</td>
       </tr>
         <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">🌱 Umidità suolo</td>
+        <td style="padding: 2px 0;">${t.popup_soil_moist}</td>
         <td style="text-align: right; font-weight: bold;">${(data.weather_summary?.current_soil_moisture || 0).toFixed(2)} m³/m³</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">💦 Umidità aria</td>
+        <td style="padding: 2px 0;">${t.popup_air_humid}</td>
         <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.current_humidity)}%</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">🌧️ Pioggia (ultimi 7gg)</td>
+        <td style="padding: 2px 0;">${t.popup_rain_7d}</td>
         <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.recent_rainfall_mm)} mm</td>
       </tr>
       
     </table>
     
-    <h3 style="font-size: 0.9rem; margin-bottom: 5px; border-bottom: 2px solid var(--border); padding-bottom: 3px;">Essenze dominanti</h3>
+    <h3 style="font-size: 0.9rem; margin-bottom: 5px; border-bottom: 2px solid var(--border); padding-bottom: 3px;">${t.popup_trees}</h3>
     <div style="font-size: 0.75rem; margin-bottom: 10px;">
       ${treeHTML}
     </div>
     
-    <h3 style="font-size: 0.9rem; margin-bottom: 5px;">Potenziale 7 giorni</h3>
+    <h3 style="font-size: 0.9rem; margin-bottom: 5px;">${t.popup_forecast}</h3>
     <div style="background: rgba(0,0,0,0.02); padding: 10px 5px 5px 5px; border-radius: 8px; border: 1px solid var(--border);">
       ${generateSparkline(data.forecast.future_scores, days)}
     </div>
@@ -1226,10 +1308,13 @@ async function fetchBuzz() {
 // Load buzz on startup
 fetchBuzz();
 
-document.addEventListener('DOMContentLoaded', applyTranslations);
+
 
 function applyTranslations() {
   const t = i18n[currentLang];
+
+  const lblLoading = document.getElementById('lbl-loading');
+  if (lblLoading) lblLoading.innerText = t.popup_loading;
 
   const lblSpecies = document.getElementById('lbl-species');
   if (lblSpecies) lblSpecies.innerText = t.lbl_species;

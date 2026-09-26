@@ -1,20 +1,27 @@
 import math
+import os
 from typing import Dict, List
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
-from core_engine import REGIONS, SPECIES_PROFILES, calculate_score
+from core_engine import REGIONS, SPECIES_PROFILES, calculate_score, generate_grid
 from data_services import (
     aggregate_weather_data,
+    get_community_buzz,
+    get_regional_weather,
     get_soil_ph,
     get_terrain_data,
     get_weather_forecast,
+    interpolate_weather,
+    is_in_forest,
 )
 
-import os
-from dotenv import load_dotenv
+
 
 # Load local .env if it exists
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
@@ -34,7 +41,6 @@ async def enforce_vault_lock(request, call_next):
     if secret_password:
         client_auth = request.headers.get("X-Fungi-Auth")
         if client_auth != secret_password:
-            from fastapi.responses import JSONResponse
             return JSONResponse(status_code=401, content={"detail": "Secure Vault: Incorrect or missing password."})
             
     return await call_next(request)
@@ -80,14 +86,7 @@ def predict_point(req: PredictionRequest):
 
     soil_ph = get_soil_ph(req.lat, req.lon)
 
-    # 1. Fetch community buzz
-    from data_services import get_community_buzz
-
     buzz_data = get_community_buzz()
-
-    # 2. Check forest mask (mocking region_id as 'asiago' for the mask check or doing a generic search)
-    # The current forest_manager expects a region_id. Since predict_point can be anywhere, we'll try to find the region.
-    from data_services import is_in_forest
 
     in_forest = True
     found_region = ""
@@ -141,7 +140,7 @@ def get_regions():
     return list(REGIONS.keys())
 
 
-from data_services import get_community_buzz
+
 
 
 @app.get("/predict/grid/{region_id}/{species_id}")
@@ -156,13 +155,7 @@ def predict_grid(region_id: str, species_id: str):
     center_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2
     center_lon = (bounds["lon_min"] + bounds["lon_max"]) / 2
 
-    # Fetch global community buzz once for the region
-    from data_services import get_community_buzz
-
     buzz_data = get_community_buzz()
-
-    # Fetch weather for the 4 corners of the bounding box to allow bilinear interpolation
-    from data_services import get_regional_weather, interpolate_weather
 
     regional_weather = get_regional_weather(bounds)
 
@@ -172,22 +165,18 @@ def predict_grid(region_id: str, species_id: str):
     # Get terrain for the center to use for altitude-based temperature adjustment (lapse rate)
     center_terrain = get_terrain_data(center_lat, center_lon)
 
-    grid_points = generate_grid(region_id, 600.0)
+    grid_points = generate_grid(region_id, 250.0)
     features = []
 
-    for lat, lon in grid_points:
+    # Process each grid point — parallelized for speed
+    def process_point(lat, lon):
         terrain = get_terrain_data(lat, lon)
         if terrain["elevation"] == 0.0:
-            continue
+            return None
 
-        from data_services import is_in_forest
+        in_forest_flag = is_in_forest(lat, lon, region_id)
 
-        in_forest = is_in_forest(lat, lon, region_id)
-
-        # 1. Bilinear interpolation of weather for this exact lat/lon
         local_weather_base = interpolate_weather(lat, lon, regional_weather)
-
-        # 2. Micro-climate adjustment: Temperature drops ~0.65C per 100m elevation gain
         elev_diff = terrain["elevation"] - center_terrain["elevation"]
         local_weather = local_weather_base.copy()
         local_weather["current_soil_temp_6cm"] -= (elev_diff / 100.0) * 0.65
@@ -198,36 +187,37 @@ def predict_grid(region_id: str, species_id: str):
             terrain,
             center_soil_ph,
             community_buzz=buzz_data["buzz_score"],
-            in_forest=in_forest,
+            in_forest=in_forest_flag,
             lat=lat,
             lon=lon,
             region=region_id,
         )
 
-        # Create a simple square polygon for the cell
-        lat_step = 600.0 / 111320.0 / 2
-        lon_step = 600.0 / (111320.0 * math.cos(math.radians(lat))) / 2
+        if score <= 0:
+            return None
 
-        polygon = [
-            [lon - lon_step, lat - lat_step],
-            [lon + lon_step, lat - lat_step],
-            [lon + lon_step, lat + lat_step],
-            [lon - lon_step, lat + lat_step],
-            [lon - lon_step, lat - lat_step],
-        ]
+        lat_step = 250.0 / 111320.0 / 2
+        lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
 
-        if score > 0:
-            features.append(
-                {
-                    "type": "Feature",
-                    "geometry": {"type": "Polygon", "coordinates": [polygon]},
-                    "properties": {
-                        "score": score,
-                        "elevation": terrain["elevation"],
-                        "tree_type": tree_type,
-                    },
-                }
-            )
+        return {
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [[
+                [lon - lon_step, lat - lat_step],
+                [lon + lon_step, lat - lat_step],
+                [lon + lon_step, lat + lat_step],
+                [lon - lon_step, lat + lat_step],
+                [lon - lon_step, lat - lat_step],
+            ]]},
+            "properties": {
+                "score": score,
+                "elevation": terrain["elevation"],
+                "tree_type": tree_type,
+            },
+        }
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = pool.map(lambda p: process_point(p[0], p[1]), grid_points)
+        features = [r for r in results if r is not None]
 
     return {"type": "FeatureCollection", "features": features}
 
@@ -252,43 +242,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
-import math
-
-# Bounding boxes for the 3 target areas
-# Asiago, Recoaro, Lavarone
-
-
-def generate_grid(region_name: str, step_m: float = 250.0):
-    """
-    Generate a grid of lat/lon points for a given region.
-    step_m is the distance between points in meters.
-    """
-    if region_name not in REGIONS:
-        return []
-
-    bounds = REGIONS[region_name]
-
-    # 1 degree of latitude is ~111,320 meters
-    lat_step = step_m / 111320.0
-
-    # 1 degree of longitude is ~111,320 * cos(lat) meters
-    avg_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2.0
-    lon_step = step_m / (111320.0 * math.cos(math.radians(avg_lat)))
-
-    grid = []
-    lat = bounds["lat_min"]
-    while lat <= bounds["lat_max"]:
-        lon = bounds["lon_min"]
-        while lon <= bounds["lon_max"]:
-            grid.append((round(lat, 5), round(lon, 5)))
-            lon += lon_step
-        lat += lat_step
-
-    return grid
-
-
-if __name__ == "__main__":
-    # Test grid generation
-    g = generate_grid("recoaro", 250)
-    print(f"Generated {len(g)} points for Recoaro at 250m resolution.")
-    print("Sample points:", g[:5])
