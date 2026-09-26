@@ -1,7 +1,5 @@
 import math
 from datetime import datetime
-import data_services
-
 SPECIES_PROFILES = {
     "boletus_edulis": {
         "name_it": "Porcino",
@@ -514,6 +512,7 @@ REGIONS = {
 
 
 def generate_grid(region_name: str, step_m: float = 250.0):
+    import data_services
     """
     Generate a grid of lat/lon points for a given region.
     step_m is the distance between points in meters.
