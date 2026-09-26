@@ -27,11 +27,15 @@ self.addEventListener('fetch', event => {
         }
         return fetch(event.request).then(
           function(response) {
-            // Optional: cache dynamic images and API responses here
             return response;
           }
         ).catch(() => {
           // Fallback if offline and not in cache
+          return new Response("Network error occurred or offline.", {
+            status: 503,
+            statusText: "Service Unavailable",
+            headers: new Headers({ "Content-Type": "text/plain" })
+          });
         });
       })
   );
