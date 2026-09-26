@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fungi-cache-v2';
+const CACHE_NAME = 'fungi-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
