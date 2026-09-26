@@ -172,7 +172,7 @@ def predict_grid(region_id: str, species_id: str):
     # Get terrain for the center to use for altitude-based temperature adjustment (lapse rate)
     center_terrain = get_terrain_data(center_lat, center_lon)
 
-    grid_points = generate_grid(region_id, 250.0)
+    grid_points = generate_grid(region_id, 600.0)
     features = []
 
     for lat, lon in grid_points:
@@ -204,9 +204,9 @@ def predict_grid(region_id: str, species_id: str):
             region=region_id,
         )
 
-        # Create a simple square polygon for the 250m cell
-        lat_step = 250.0 / 111320.0 / 2
-        lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
+        # Create a simple square polygon for the cell
+        lat_step = 600.0 / 111320.0 / 2
+        lon_step = 600.0 / (111320.0 * math.cos(math.radians(lat))) / 2
 
         polygon = [
             [lon - lon_step, lat - lat_step],
