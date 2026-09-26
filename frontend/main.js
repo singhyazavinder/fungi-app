@@ -379,7 +379,7 @@ function setMapStyle(type) {
 // Re-add grids when style finishes loading
 map.on('styledata', () => {
   if (!map.getSource('predictions')) {
-    fetchAllGrids();
+      loadRegionGrid();
   }
 });
 
@@ -414,20 +414,31 @@ map.on('click', async (e) => {
 
 // Load grids automatically on map load
 map.on('load', () => {
-  fetchAllGrids();
+  loadRegionGrid();
 });
 
-// Setup Location Buttons to just fly to the areas
+let selectedRegion = 'asiago'; // default region
+
+// Setup Location Buttons to update selectedRegion and fly to the areas
 document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').forEach(btn => {
   btn.addEventListener('click', (e) => {
     const lat = parseFloat(btn.dataset.lat);
     const lon = parseFloat(btn.dataset.lon);
+    
+    // Update the selected region based on the button text
+    selectedRegion = btn.innerText.trim().toLowerCase();
+    
     map.flyTo({ center: [lon, lat], zoom: 12 });
     
     // Auto-close mobile drawer when location is clicked
     const drawer = document.getElementById('drawer-wrapper');
     if (drawer && drawer.classList.contains('drawer-open')) {
       drawer.classList.remove('drawer-open');
+    }
+    
+    // If a mushroom is already selected, load its grid for the new region immediately
+    if (currentSpeciesId) {
+      loadRegionGrid();
     }
   });
 });
@@ -897,7 +908,7 @@ function renderSpeciesCards() {
         const t = i18n[currentLang];
         predPanel.innerHTML = `<p>${t.click_map}</p>`;
       }
-      fetchAllGrids();
+        loadRegionGrid();
     };
 
     card.innerHTML = `
@@ -971,13 +982,14 @@ renderSpeciesCards();
 let isFetchingGrids = false;
 const gridCache = {};
 
-async function fetchAllGrids() {
+async function loadRegionGrid() {
   if (isFetchingGrids) return;
   if (!currentSpeciesId) return;
 
   // Check cache first
-  if (gridCache[currentSpeciesId]) {
-    const cachedData = gridCache[currentSpeciesId];
+  const cacheKey = `${currentSpeciesId}_${selectedRegion}`;
+  if (gridCache[cacheKey]) {
+    const cachedData = gridCache[cacheKey];
     if (map.getSource('predictions')) {
       map.getSource('predictions').setData(cachedData);
     } else {
@@ -995,19 +1007,12 @@ async function fetchAllGrids() {
   try {
     const allFeatures = [];
 
-    // Fetch all 3 grids sequentially to prevent Out-Of-Memory on Render free tier
-    for (const region of regions) {
-      try {
-        const res = await fetch(`${API_URL}/predict/grid/${region}/${speciesId}`);
-        if (res.ok) {
-          const geojson = await res.json();
-          if (geojson && geojson.features) {
-            allFeatures.push(...geojson.features);
-          }
-        }
-      } catch (err) {
-        console.error(`Error fetching grid for ${region}:`, err);
-      }
+    // Fetch only the selected region to prevent Render memory limit crashes
+    const res = await fetch(`${API_URL}/predict/grid/${selectedRegion}/${speciesId}`);
+    const geojson = res.ok ? await res.json() : null;
+
+    if (geojson && geojson.features) {
+      allFeatures.push(...geojson.features);
     }
 
     const combinedGeoJSON = {
@@ -1015,8 +1020,8 @@ async function fetchAllGrids() {
       features: allFeatures
     };
 
-    // Cache the result for instant switching
-    gridCache[speciesId] = combinedGeoJSON;
+    // Cache the result for this specific region + species combination
+    gridCache[`${speciesId}_${selectedRegion}`] = combinedGeoJSON;
 
     if (map.getSource('predictions')) {
       map.getSource('predictions').setData(combinedGeoJSON);
