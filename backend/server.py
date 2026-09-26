@@ -30,8 +30,8 @@ app = FastAPI(title="Fungi Prediction API")
 
 @app.middleware("http")
 async def enforce_vault_lock(request, call_next):
-    # Allow CORS preflight requests
-    if request.method == "OPTIONS":
+    # Allow CORS preflight requests and the public ping endpoint
+    if request.method == "OPTIONS" or request.url.path == "/ping":
         return await call_next(request)
         
     # Check the secret password from environment variables
@@ -64,6 +64,11 @@ class RegionPredictionRequest(BaseModel):
     region_id: str
     species_id: str
 
+
+@app.get("/ping")
+def ping_server():
+    """Lightweight endpoint to keep the server awake."""
+    return {"status": "awake"}
 
 @app.get("/species")
 def get_species():
