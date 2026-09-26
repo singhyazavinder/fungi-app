@@ -432,6 +432,7 @@ def calculate_score(
 
     local_trees = []
     if region and lat and lon:
+        import data_services
         local_trees = data_services.get_tree_type(lat, lon, region)
 
         has_primary = any(tree in local_trees for tree in primary_trees)
