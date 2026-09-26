@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('btn-unlock').addEventListener('click', async () => {
-    const pwd = document.getElementById('vault-password').value;
+    const pwd = document.getElementById('vault-password').value.trim();
     const oldPassword = secretPassword;
     secretPassword = pwd;
     
