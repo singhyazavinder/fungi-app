@@ -7,3 +7,4 @@ pydantic==2.3.0
 httpx==0.24.1
 scipy==1.11.2
 python-dotenv
+Pillow==10.0.1
