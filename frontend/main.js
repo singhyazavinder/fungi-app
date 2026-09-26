@@ -13,7 +13,15 @@ window.fetch = function() {
     config.headers = config.headers || {};
     config.headers['X-Fungi-Auth'] = secretPassword || '';
   }
-  return originalFetch(resource, config);
+  return originalFetch(resource, config).then(response => {
+    if (response.status === 401) {
+      localStorage.removeItem('fungi_secret');
+      secretPassword = null;
+      document.getElementById('vault-lock').style.display = 'flex';
+      document.getElementById('app').style.opacity = '0.3';
+    }
+    return response;
+  });
 };
 
 document.addEventListener('DOMContentLoaded', () => {
