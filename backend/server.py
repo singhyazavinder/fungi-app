@@ -152,9 +152,6 @@ def get_regions():
 
 
 
-# Use a global executor to avoid spinning up 24+ threads at once which kills Render's 512MB RAM limit
-grid_executor = ThreadPoolExecutor(max_workers=4)
-
 @app.get("/predict/grid/{region_id}/{species_id}")
 def predict_grid(region_id: str, species_id: str):
     """Generate a GeoJSON grid of predictions for a region."""
@@ -171,16 +168,16 @@ def predict_grid(region_id: str, species_id: str):
 
     regional_weather = get_regional_weather(bounds)
 
-    # Query soil ONCE for the region center
+    # Query soil ONCE for the region center (as soil pH doesn't vary as dynamically as weather)
     center_soil_ph = get_soil_ph(center_lat, center_lon)
 
-    # Get terrain for the center to use for altitude-based temperature adjustment
+    # Get terrain for the center to use for altitude-based temperature adjustment (lapse rate)
     center_terrain = get_terrain_data(center_lat, center_lon)
 
-    # Slightly increase step size from 250m to 300m to reduce points by ~30% and save memory
-    grid_points = generate_grid(region_id, 300.0)
+    grid_points = generate_grid(region_id, 500.0)
     features = []
 
+    # Process each grid point — parallelized for speed
     def process_point(lat, lon):
         terrain = get_terrain_data(lat, lon)
         if terrain["elevation"] == 0.0:
@@ -208,8 +205,8 @@ def predict_grid(region_id: str, species_id: str):
         if score <= 0:
             return None
 
-        lat_step = 300.0 / 111320.0 / 2
-        lon_step = 300.0 / (111320.0 * math.cos(math.radians(lat))) / 2
+        lat_step = 500.0 / 111320.0 / 2
+        lon_step = 500.0 / (111320.0 * math.cos(math.radians(lat))) / 2
 
         return {
             "type": "Feature",
@@ -227,9 +224,12 @@ def predict_grid(region_id: str, species_id: str):
             },
         }
 
-    # Use the global executor to limit memory overhead
-    results = list(grid_executor.map(lambda p: process_point(p[0], p[1]), grid_points))
-    features = [r for r in results if r is not None]
+    # Process each grid point synchronously to prevent rasterio GDAL thread-safety memory leaks
+    features = []
+    for lat, lon in grid_points:
+        result = process_point(lat, lon)
+        if result is not None:
+            features.append(result)
 
     return {"type": "FeatureCollection", "features": features}
 
