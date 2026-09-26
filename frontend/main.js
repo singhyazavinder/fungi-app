@@ -429,13 +429,15 @@ document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').f
       b.style.borderColor = '';
     });
     
-    // Add active styling to clicked button
-    btn.style.background = 'var(--primary)';
-    btn.style.color = 'white';
-    btn.style.borderColor = 'var(--primary)';
-
     const lat = parseFloat(btn.dataset.lat);
     const lon = parseFloat(btn.dataset.lon);
+
+    // Add active styling to ALL buttons for this location
+    document.querySelectorAll(`.btn-loc[data-lat="${btn.dataset.lat}"]`).forEach(b => {
+      b.style.background = 'var(--primary)';
+      b.style.color = 'white';
+      b.style.borderColor = 'var(--primary)';
+    });
     
     // Update the selected region based on the button text
     selectedRegion = btn.innerText.trim().toLowerCase();
@@ -457,12 +459,11 @@ document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').f
 
 // Set default active button (Asiago)
 document.addEventListener('DOMContentLoaded', () => {
-  const defaultBtn = document.querySelector('.btn-loc[data-lat="45.875"]');
-  if (defaultBtn) {
-    defaultBtn.style.background = 'var(--primary)';
-    defaultBtn.style.color = 'white';
-    defaultBtn.style.borderColor = 'var(--primary)';
-  }
+  document.querySelectorAll('.btn-loc[data-lat="45.875"]').forEach(b => {
+    b.style.background = 'var(--primary)';
+    b.style.color = 'white';
+    b.style.borderColor = 'var(--primary)';
+  });
 });
 
 const handleMyLoc = () => {
