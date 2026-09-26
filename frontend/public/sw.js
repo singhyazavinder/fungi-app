@@ -1,12 +1,7 @@
 const CACHE_NAME = 'fungi-cache-v1';
 const urlsToCache = [
   '/',
-  '/index.html',
-  '/style.css',
-  '/main.js',
-  'https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css',
-  'https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+  '/index.html'
 ];
 
 self.addEventListener('install', event => {
