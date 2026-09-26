@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Fungi" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍄</text></svg>" />
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍄</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 15 C20 15 10 45 10 55 L90 55 C90 45 80 15 50 15 Z' fill='%23e53935'/><rect x='40' y='55' width='20' height='35' fill='%23f5f5f5' rx='5'/><circle cx='30' cy='40' r='4' fill='white'/><circle cx='50' cy='30' r='5' fill='white'/><circle cx='70' cy='42' r='4.5' fill='white'/></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 15 C20 15 10 45 10 55 L90 55 C90 45 80 15 50 15 Z' fill='%23e53935'/><rect x='40' y='55' width='20' height='35' fill='%23f5f5f5' rx='5'/><circle cx='30' cy='40' r='4' fill='white'/><circle cx='50' cy='30' r='5' fill='white'/><circle cx='70' cy='42' r='4.5' fill='white'/></svg>" />
   
   <title>Fungi - Mushroom Prediction</title>
   <link href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css" rel="stylesheet" />
@@ -25,10 +25,11 @@
   <!-- Secure Vault Lock Screen -->
   <div id="vault-lock" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-color); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
     <h1 style="margin-bottom: 20px; font-size: 2rem;">🍄 Fungi Vault</h1>
-    <p style="margin-bottom: 30px; color: var(--text-light);">Enter your shared secret password to unlock.</p>
-    <div style="display: flex; gap: 10px;">
-      <input type="password" id="vault-password" placeholder="Password" style="padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-bg); color: var(--text-dark); outline: none; font-size: 1rem; width: 250px;">
-      <button id="btn-unlock" class="btn btn-primary" style="margin: 0; width: auto; padding: 12px 24px;">Unlock</button>
+    <p style="margin-bottom: 30px; color: var(--text-light);">Enter your shared secret password and your name.</p>
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 250px;">
+      <input type="text" id="vault-username" placeholder="Your Name" style="padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-bg); color: var(--text-dark); outline: none; font-size: 1rem; width: 100%; box-sizing: border-box;">
+      <input type="password" id="vault-password" placeholder="Password" style="padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-bg); color: var(--text-dark); outline: none; font-size: 1rem; width: 100%; box-sizing: border-box;">
+      <button id="btn-unlock" class="btn btn-primary" style="padding: 12px 24px; width: 100%;">Unlock</button>
     </div>
     <p id="vault-error" style="color: #ef4444; margin-top: 20px; display: none;">Incorrect password. Connection refused by server.</p>
   </div>
@@ -37,7 +38,10 @@
     <!-- Sidebar -->
     <aside id="sidebar">
       <div class="sidebar-header">
-        <h1>🍄 Fungi</h1>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h1>🍄 Fungi</h1>
+          <button id="btn-records" class="btn btn-small" style="background: var(--primary); color: white;">Records</button>
+        </div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <span id="offline-indicator" style="display: none; color: #ef4444; font-size: 0.75rem; font-weight: bold; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); padding: 3px 6px; border-radius: 4px;" title="Nessuna connessione Internet">OFFLINE</span>
           <button id="theme-toggle" class="btn btn-small" title="Toggle Dark/Light Mode">🌙</button>
@@ -104,6 +108,22 @@
             <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(156, 39, 176, 0.7);"></span> 41-60%</div>
             <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(106, 27, 154, 0.85);"></span> 61-80%</div>
             <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(74, 20, 140, 1.0);"></span> 81-100%</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Records panel (Hidden initially) -->
+      <div id="panel-records" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+        <div class="sidebar-section" style="padding: 10px 24px; background: rgba(0,0,0,0.03);">
+          <button id="btn-records-back"
+            style="background: none; border: none; font-weight: bold; cursor: pointer; color: var(--text-dark); display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+            <span>⬅</span> Torna ai funghi
+          </button>
+        </div>
+        <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
+          <h3 style="margin-bottom: 15px;">I Miei Ritrovamenti</h3>
+          <div id="records-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <p>Caricamento...</p>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   : 'https://fungi-app.onrender.com';
 
 let secretPassword = localStorage.getItem('fungi_secret');
+let userName = localStorage.getItem('fungi_username') || "Anonymous";
 
 // Secure Vault Interceptor
 const originalFetch = window.fetch;
@@ -34,6 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-unlock').addEventListener('click', async () => {
     const pwd = document.getElementById('vault-password').value.trim();
+    let uname = document.getElementById('vault-username').value.trim();
+    if (!uname) uname = "Anonymous";
+    
     const oldPassword = secretPassword;
     secretPassword = pwd;
     
@@ -43,7 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
         secretPassword = oldPassword;
         document.getElementById('vault-error').style.display = 'block';
       } else {
+        userName = uname;
         localStorage.setItem('fungi_secret', pwd);
+        localStorage.setItem('fungi_username', uname);
         document.getElementById('vault-error').style.display = 'none';
         document.getElementById('vault-lock').style.display = 'none';
         document.getElementById('app').style.opacity = '1';
@@ -128,7 +134,10 @@ const i18n = {
     popup_conifer_3: "larice",
     popup_mixed_1: "faggio comune",
     popup_mixed_2: "abete rosso",
-    popup_mixed_3: "orniello"
+    popup_mixed_3: "orniello",
+    found: "Trovato 🍄",
+    recorded: "Registrato! Grazie per aver contribuito al modello.",
+    saved_offline: "Salvato offline! Verrà sincronizzato appena tornerà la connessione."
   },
   en: {
     lbl_species: "Select Species:",
@@ -188,7 +197,10 @@ const i18n = {
     popup_conifer_3: "larch",
     popup_mixed_1: "common beech",
     popup_mixed_2: "Norway spruce",
-    popup_mixed_3: "manna ash"
+    popup_mixed_3: "manna ash",
+    found: "Found 🍄",
+    recorded: "Recorded successfully! Thank you for contributing to the model.",
+    saved_offline: "Saved offline! It will sync when the connection returns."
   },
   hi: {
     lbl_species: "प्रजाति चुनें:",
@@ -248,7 +260,10 @@ const i18n = {
     popup_conifer_3: "लार्च",
     popup_mixed_1: "सामान्य बीच",
     popup_mixed_2: "नॉर्वे स्प्रूस",
-    popup_mixed_3: "मन्ना ऐश"
+    popup_mixed_3: "मन्ना ऐश",
+    found: "मिला 🍄",
+    recorded: "सफलतापूर्वक रिकॉर्ड किया गया! मॉडल में योगदान देने के लिए धन्यवाद।",
+    saved_offline: "ऑफ़लाइन सहेजा गया! कनेक्शन वापस आने पर यह सिंक हो जाएगा।"
   }
 };
 
@@ -297,7 +312,8 @@ map.addControl(new maplibregl.NavigationControl(), 'top-right');
 const geolocate = new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,
-  showUserHeading: true
+  showUserHeading: true,
+  showAccuracyCircle: true
 });
 map.addControl(geolocate, 'top-right');
 
@@ -1000,6 +1016,7 @@ if (modal) {
 // Back button logic
 document.getElementById('btn-back').addEventListener('click', () => {
   document.getElementById('panel-details').style.display = 'none';
+  document.getElementById('panel-records').style.display = 'none';
   document.getElementById('panel-species').style.display = 'flex';
   document.getElementById('map-legend').style.display = 'none';
   
@@ -1008,6 +1025,71 @@ document.getElementById('btn-back').addEventListener('click', () => {
   
   if (map.getSource('predictions')) {
     map.getSource('predictions').setData({ type: 'FeatureCollection', features: [] });
+  }
+});
+
+document.getElementById('btn-records-back').addEventListener('click', () => {
+  document.getElementById('panel-records').style.display = 'none';
+  document.getElementById('panel-species').style.display = 'flex';
+});
+
+document.getElementById('btn-records').addEventListener('click', async () => {
+  document.getElementById('panel-species').style.display = 'none';
+  document.getElementById('panel-details').style.display = 'none';
+  document.getElementById('panel-records').style.display = 'flex';
+  
+  const listEl = document.getElementById('records-list');
+  listEl.innerHTML = '<p>Caricamento...</p>';
+  
+  try {
+    const res = await fetch(`${API_URL}/records/all`);
+    if (!res.ok) throw new Error("Failed to load");
+    const records = await res.json();
+    
+    // Filter only valid founds
+    const foundRecords = records.filter(r => r.action === 'found');
+    
+    if (foundRecords.length === 0) {
+      listEl.innerHTML = '<p>Nessun ritrovamento registrato.</p>';
+      return;
+    }
+    
+    // Sort by newest first
+    foundRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    listEl.innerHTML = '';
+    foundRecords.forEach(rec => {
+      const sp = SPECIES_DATA.find(s => s.id === rec.species_id);
+      const spName = sp ? (sp.name[currentLang] || sp.name['en']) : rec.species_id;
+      const dateStr = new Date(rec.timestamp).toLocaleString(currentLang);
+      
+      const card = document.createElement('div');
+      card.style.padding = '10px';
+      card.style.background = 'white';
+      card.style.borderRadius = '8px';
+      card.style.border = '1px solid var(--border)';
+      card.style.display = 'flex';
+      card.style.alignItems = 'center';
+      card.style.gap = '10px';
+      
+      if (sp) {
+        card.innerHTML = `
+          <img src="${sp.img}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; font-size: 0.95rem;">${spName}</div>
+            <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
+            <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
+          </div>
+        `;
+      } else {
+        card.innerHTML = `<div>${rec.species_id} <br> ${dateStr} <br> 👤 ${rec.username || 'Anonymous'}</div>`;
+      }
+      
+      listEl.appendChild(card);
+    });
+    
+  } catch (err) {
+    listEl.innerHTML = '<p style="color: red;">Errore nel caricamento.</p>';
   }
 });
 
@@ -1248,6 +1330,20 @@ function renderPrediction(data) {
     <div style="background: rgba(0,0,0,0.02); padding: 10px 5px 5px 5px; border-radius: 8px; border: 1px solid var(--border);">
       ${generateSparkline(data.forecast.future_scores, days)}
     </div>
+    
+    <h3 style="font-size: 0.9rem; margin-top: 15px; margin-bottom: 5px;">${t.found}</h3>
+    <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-top: 5px; scrollbar-width: none; -ms-overflow-style: none;">
+      ${SPECIES_DATA.map(sp => {
+        const spName = sp.name[currentLang] || sp.name['en'];
+        return `
+          <div data-species="${sp.id}" style="min-width: 65px; max-width: 65px; text-align: center; cursor: pointer; user-select: none;" 
+               onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
+            <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
+            <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
     </div>
   `;
 
@@ -1479,6 +1575,86 @@ function updateOnlineStatus() {
   }
 }
 
-window.addEventListener('online', updateOnlineStatus);
+window.recordSighting = async function(lat, lon, species_id, action) {
+  const record = { lat, lon, species_id, action, username: userName, timestamp: new Date().toISOString() };
+  if (!navigator.onLine) {
+    const offlineRecords = JSON.parse(localStorage.getItem('fungi_offline_records') || '[]');
+    offlineRecords.push(record);
+    localStorage.setItem('fungi_offline_records', JSON.stringify(offlineRecords));
+    return;
+  }
+  
+  try {
+    await fetch(`${API_URL}/record`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+  } catch (err) {
+    console.error("Failed to record", err);
+    const offlineRecords = JSON.parse(localStorage.getItem('fungi_offline_records') || '[]');
+    offlineRecords.push(record);
+    localStorage.setItem('fungi_offline_records', JSON.stringify(offlineRecords));
+  }
+};
+
+window.handleSwipeRecord = function(el, lat, lon, species_id) {
+  const now = new Date().getTime();
+  const lastClick = parseInt(el.dataset.lastClick || "0");
+  el.dataset.lastClick = now;
+
+  const imgEl = document.getElementById(`swipe-img-${species_id}`);
+
+  if (now - lastClick < 400) {
+    // Double tap - UNDO
+    imgEl.style.borderColor = 'transparent';
+    imgEl.style.opacity = '1';
+    window.recordSighting(lat, lon, species_id, 'undo_found');
+  } else {
+    // Single tap - wait briefly to confirm it's not a double tap
+    setTimeout(() => {
+      if (parseInt(el.dataset.lastClick) === now) {
+        // Confirmed single tap
+        imgEl.style.borderColor = '#4CAF50';
+        imgEl.style.opacity = '0.7';
+        window.recordSighting(lat, lon, species_id, 'found');
+      }
+    }, 450);
+  }
+};
+
+
+window.syncOfflineRecords = async function() {
+  const offlineRecords = JSON.parse(localStorage.getItem('fungi_offline_records') || '[]');
+  if (offlineRecords.length === 0) return;
+  
+  let successCount = 0;
+  for (const record of offlineRecords) {
+    try {
+      const res = await fetch(`${API_URL}/record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      if (res.ok) successCount++;
+    } catch (err) {
+      console.error("Failed to sync record", err);
+    }
+  }
+  
+  if (successCount === offlineRecords.length) {
+    localStorage.removeItem('fungi_offline_records');
+    console.log(`Synced ${successCount} offline records.`);
+  } else {
+    // Remove the ones that succeeded
+    localStorage.setItem('fungi_offline_records', JSON.stringify(offlineRecords.slice(successCount)));
+  }
+};
+
+window.addEventListener('online', () => {
+  updateOnlineStatus();
+  syncOfflineRecords();
+});
+
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();

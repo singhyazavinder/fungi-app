@@ -3,13 +3,24 @@ import os
 from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+import requests
+import base64
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+import datetime
 from core_engine import REGIONS, SPECIES_PROFILES, calculate_score, generate_grid
+
+class RecordRequest(BaseModel):
+    lat: float
+    lon: float
+    species_id: str
+    action: str
+    username: str = "Anonymous"
+
 from data_services import (
     aggregate_weather_data,
     get_community_buzz,
@@ -189,6 +200,116 @@ def predict_point(req: PredictionRequest):
         "forecast": {"future_scores": future_scores},
     }
 
+
+def sync_to_github():
+    import os
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_repo = os.environ.get("GITHUB_REPO")
+    if not github_token or not github_repo:
+        print("Skipping GitHub sync: GITHUB_TOKEN or GITHUB_REPO not set.")
+        return
+
+    records_file = "data/user_records.jsonl"
+    if not os.path.exists(records_file):
+        return
+
+    with open(records_file, "r") as f:
+        content = f.read()
+
+    b64_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+    url = f"https://api.github.com/repos/{github_repo}/contents/data/user_records.jsonl"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    # Get file SHA if it exists
+    sha = None
+    res = requests.get(url, headers=headers)
+    if res.status_code == 200:
+        sha = res.json().get("sha")
+
+    payload = {
+        "message": "Auto-sync user records",
+        "content": b64_content
+    }
+    if sha:
+        payload["sha"] = sha
+
+    put_res = requests.put(url, headers=headers, json=payload)
+    if put_res.status_code in [200, 201]:
+        print("Successfully synced to GitHub.")
+    else:
+        print(f"Failed to sync to GitHub: {put_res.status_code} {put_res.text}")
+
+@app.post("/record")
+def record_sighting(req: RecordRequest, background_tasks: BackgroundTasks):
+    """Record a user sighting or collection, or undo it."""
+    import json
+    import os
+    os.makedirs("data", exist_ok=True)
+    records_file = "data/user_records.jsonl"
+    
+    if req.action == "undo_found":
+        if os.path.exists(records_file):
+            lines = []
+            with open(records_file, "r") as f:
+                lines = f.readlines()
+            
+            # Find the most recent "found" for this specific lat, lon, species, day, and user
+            today_str = datetime.datetime.utcnow().isoformat()[:10] # YYYY-MM-DD
+            target_index = -1
+            
+            # Search backwards to remove the most recent match
+            for i in range(len(lines) - 1, -1, -1):
+                try:
+                    record = json.loads(lines[i])
+                    if (record.get("action") == "found" and
+                        record.get("lat") == req.lat and
+                        record.get("lon") == req.lon and
+                        record.get("species_id") == req.species_id and
+                        record.get("username", "Anonymous") == req.username and
+                        record.get("timestamp", "").startswith(today_str)):
+                        target_index = i
+                        break
+                except:
+                    pass
+            
+            if target_index != -1:
+                del lines[target_index]
+                with open(records_file, "w") as f:
+                    f.writelines(lines)
+        
+        background_tasks.add_task(sync_to_github)
+        return {"status": "success", "message": "Record undone"}
+    else:
+        with open(records_file, "a") as f:
+            f.write(json.dumps({
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+                "lat": req.lat,
+                "lon": req.lon,
+                "species_id": req.species_id,
+                "action": req.action,
+                "username": req.username
+            }) + "\n")
+            
+        background_tasks.add_task(sync_to_github)
+        return {"status": "success"}
+
+@app.get("/records/all")
+def get_all_records():
+    import json
+    import os
+    records = []
+    if os.path.exists("data/user_records.jsonl"):
+        with open("data/user_records.jsonl", "r") as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        records.append(json.loads(line))
+                    except:
+                        pass
+    return records
 
 @app.get("/regions")
 def get_regions():
