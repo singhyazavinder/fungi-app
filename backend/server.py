@@ -26,6 +26,8 @@ from data_services import (
 # Load local .env if it exists
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
+_base_grids = {}
+
 app = FastAPI(title="Fungi Prediction API")
 
 @app.middleware("http")
@@ -175,15 +177,50 @@ def predict_grid(region_id: str, species_id: str):
     center_terrain = get_terrain_data(center_lat, center_lon)
 
     grid_points = generate_grid(region_id, 250.0)
+    # Lazily precompute and cache the static terrain grid for the region
+    if region_id not in _base_grids:
+        print(f"Precomputing static terrain for {region_id} (this only happens once)...")
+        _base_grids[region_id] = []
+        
+        # Process sequentially to prevent GDAL memory leaks
+        for lat, lon in grid_points:
+            terrain = get_terrain_data(lat, lon)
+            if terrain["elevation"] == 0.0:
+                continue
+                
+            in_forest_flag = is_in_forest(lat, lon, region_id)
+            
+            # Pre-calculate the geometry for this cell since it's also static
+            lat_step = 250.0 / 111320.0 / 2
+            lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
+            geometry = {
+                "type": "Polygon", 
+                "coordinates": [[
+                    [lon - lon_step, lat - lat_step],
+                    [lon + lon_step, lat - lat_step],
+                    [lon + lon_step, lat + lat_step],
+                    [lon - lon_step, lat + lat_step],
+                    [lon - lon_step, lat - lat_step],
+                ]]
+            }
+            
+            _base_grids[region_id].append({
+                "lat": lat,
+                "lon": lon,
+                "terrain": terrain,
+                "in_forest_flag": in_forest_flag,
+                "geometry": geometry
+            })
+            
+    base_grid = _base_grids[region_id]
     features = []
 
-    # Process each grid point — parallelized for speed
-    def process_point(lat, lon):
-        terrain = get_terrain_data(lat, lon)
-        if terrain["elevation"] == 0.0:
-            return None
-
-        in_forest_flag = is_in_forest(lat, lon, region_id)
+    # Process each precomputed point rapidly
+    for point in base_grid:
+        lat = point["lat"]
+        lon = point["lon"]
+        terrain = point["terrain"]
+        in_forest_flag = point["in_forest_flag"]
 
         local_weather_base = interpolate_weather(lat, lon, regional_weather)
         elev_diff = terrain["elevation"] - center_terrain["elevation"]
@@ -202,34 +239,16 @@ def predict_grid(region_id: str, species_id: str):
             region=region_id,
         )
 
-        if score <= 0:
-            return None
-
-        lat_step = 250.0 / 111320.0 / 2
-        lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
-
-        return {
-            "type": "Feature",
-            "geometry": {"type": "Polygon", "coordinates": [[
-                [lon - lon_step, lat - lat_step],
-                [lon + lon_step, lat - lat_step],
-                [lon + lon_step, lat + lat_step],
-                [lon - lon_step, lat + lat_step],
-                [lon - lon_step, lat - lat_step],
-            ]]},
-            "properties": {
-                "score": score,
-                "elevation": terrain["elevation"],
-                "tree_type": tree_type,
-            },
-        }
-
-    # Process each grid point sequentially to prevent GDAL block cache memory leaks
-    # on Render's 512MB free tier instance.
-    for lat, lon in grid_points:
-        res = process_point(lat, lon)
-        if res is not None:
-            features.append(res)
+        if score > 0:
+            features.append({
+                "type": "Feature",
+                "geometry": point["geometry"],
+                "properties": {
+                    "score": score,
+                    "elevation": terrain["elevation"],
+                    "tree_type": tree_type,
+                },
+            })
 
     return {"type": "FeatureCollection", "features": features}
 
