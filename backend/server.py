@@ -41,7 +41,11 @@ async def enforce_vault_lock(request, call_next):
     if secret_password:
         client_auth = request.headers.get("X-Fungi-Auth")
         if client_auth != secret_password:
-            return JSONResponse(status_code=401, content={"detail": "Secure Vault: Incorrect or missing password."})
+            return JSONResponse(
+                status_code=401, 
+                content={"detail": "Secure Vault: Incorrect or missing password."},
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
             
     return await call_next(request)
 
