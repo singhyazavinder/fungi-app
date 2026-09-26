@@ -995,16 +995,18 @@ async function fetchAllGrids() {
   try {
     const allFeatures = [];
 
-    // Fetch all 3 grids in parallel to speed up rendering
-    const fetchPromises = regions.map(region =>
-      fetch(`${API_URL}/predict/grid/${region}/${speciesId}`).then(res => res.ok ? res.json() : null)
-    );
-
-    const results = await Promise.all(fetchPromises);
-
-    for (const geojson of results) {
-      if (geojson && geojson.features) {
-        allFeatures.push(...geojson.features);
+    // Fetch all 3 grids sequentially to prevent Out-Of-Memory on Render free tier
+    for (const region of regions) {
+      try {
+        const res = await fetch(`${API_URL}/predict/grid/${region}/${speciesId}`);
+        if (res.ok) {
+          const geojson = await res.json();
+          if (geojson && geojson.features) {
+            allFeatures.push(...geojson.features);
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching grid for ${region}:`, err);
       }
     }
 
