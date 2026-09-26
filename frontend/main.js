@@ -916,7 +916,19 @@ function renderSpeciesCards() {
 
       // For Mobile: trigger the full screen map layout
       document.getElementById('app').classList.add('mobile-map-active');
-      setTimeout(() => { if (map) map.resize(); }, 50); // Important: Resize mapLibre after display: block
+      setTimeout(() => { 
+        if (map) {
+          map.resize();
+          const regionCoords = {
+            'asiago': [11.510, 45.875],
+            'recoaro': [11.220, 45.700],
+            'lavarone': [11.270, 45.940]
+          };
+          if (regionCoords[selectedRegion]) {
+            map.flyTo({ center: regionCoords[selectedRegion], zoom: 12, duration: 0 });
+          }
+        }
+      }, 50); // Important: Resize mapLibre after display: block
 
       if (marker) {
         marker.remove();
