@@ -51,9 +51,19 @@
       </div>
 
       <div id="panel-species" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+        <div class="sidebar-section" style="padding-bottom: 10px;">
+          <label id="lbl-locations" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; display: block;">1. Località:</label>
+          <div class="button-group">
+            <button class="btn btn-loc" data-lat="45.875" data-lon="11.510">Asiago</button>
+            <button class="btn btn-loc" data-lat="45.700" data-lon="11.220">Recoaro</button>
+            <button class="btn btn-loc" data-lat="45.940" data-lon="11.270">Lavarone</button>
+            <button class="btn btn-loc btn-primary" id="btn-my-loc">📍 La Mia Posizione</button>
+          </div>
+        </div>
+
         <div class="sidebar-section species-section">
           <label id="lbl-species"
-            style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; display: block;">Scegli un fungo</label>
+            style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; display: block;">2. Scegli un fungo</label>
           <div id="species-list" class="species-list">
             <!-- Cards will be injected by main.js -->
           </div>
@@ -67,16 +77,6 @@
             style="background: none; border: none; font-weight: bold; cursor: pointer; color: var(--text-dark); display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
             <span>⬅</span> Torna ai funghi
           </button>
-        </div>
-
-        <div class="sidebar-section">
-          <label id="lbl-locations">Località:</label>
-          <div class="button-group">
-            <button class="btn btn-loc" data-lat="45.875" data-lon="11.510">Asiago</button>
-            <button class="btn btn-loc" data-lat="45.700" data-lon="11.220">Recoaro</button>
-            <button class="btn btn-loc" data-lat="45.940" data-lon="11.270">Lavarone</button>
-            <button class="btn btn-loc btn-primary" id="btn-my-loc">📍 La Mia Posizione</button>
-          </div>
         </div>
 
 

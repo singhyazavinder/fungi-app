@@ -422,6 +422,18 @@ let selectedRegion = 'asiago'; // default region
 // Setup Location Buttons to update selectedRegion and fly to the areas
 document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').forEach(btn => {
   btn.addEventListener('click', (e) => {
+    // Remove active class from all location buttons
+    document.querySelectorAll('.btn-loc').forEach(b => {
+      b.style.background = '';
+      b.style.color = '';
+      b.style.borderColor = '';
+    });
+    
+    // Add active styling to clicked button
+    btn.style.background = 'var(--primary)';
+    btn.style.color = 'white';
+    btn.style.borderColor = 'var(--primary)';
+
     const lat = parseFloat(btn.dataset.lat);
     const lon = parseFloat(btn.dataset.lon);
     
@@ -441,6 +453,16 @@ document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').f
       loadRegionGrid();
     }
   });
+});
+
+// Set default active button (Asiago)
+document.addEventListener('DOMContentLoaded', () => {
+  const defaultBtn = document.querySelector('.btn-loc[data-lat="45.875"]');
+  if (defaultBtn) {
+    defaultBtn.style.background = 'var(--primary)';
+    defaultBtn.style.color = 'white';
+    defaultBtn.style.borderColor = 'var(--primary)';
+  }
 });
 
 const handleMyLoc = () => {
