@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#2b7a3e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fungi" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍄</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍄</text></svg>" />
+  
+  <title>Fungi - Mushroom Prediction</title>
+  <link href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <!-- Secure Vault Lock Screen -->
+  <div id="vault-lock" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-color); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px);">
+    <h1 style="margin-bottom: 20px; font-size: 2rem;">🍄 Fungi Vault</h1>
+    <p style="margin-bottom: 30px; color: var(--text-light);">Enter your shared secret password to unlock.</p>
+    <div style="display: flex; gap: 10px;">
+      <input type="password" id="vault-password" placeholder="Password" style="padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-bg); color: var(--text-dark); outline: none; font-size: 1rem; width: 250px;">
+      <button id="btn-unlock" class="btn btn-primary" style="margin: 0; width: auto; padding: 12px 24px;">Unlock</button>
+    </div>
+    <p id="vault-error" style="color: #ef4444; margin-top: 20px; display: none;">Incorrect password. Connection refused by server.</p>
+  </div>
+
+  <div id="app" style="opacity: 0; transition: opacity 0.5s ease;">
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h1>🍄 Fungi</h1>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span id="offline-indicator" style="display: none; color: #ef4444; font-size: 0.75rem; font-weight: bold; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); padding: 3px 6px; border-radius: 4px;" title="Nessuna connessione Internet">OFFLINE</span>
+          <button id="theme-toggle" class="btn btn-small" title="Toggle Dark/Light Mode">🌙</button>
+          <button id="lang-toggle" class="btn btn-small">EN 🇬🇧</button>
+        </div>
+      </div>
+      <div class="sidebar-section desktop-map-controls" style="display: flex; gap: 10px;">
+        <button id="btn-streets" class="btn btn-small"
+          style="flex: 1; background: var(--primary); color: white;">Streets</button>
+        <button id="btn-satellite" class="btn btn-small" style="flex: 1; color: var(--text-dark);">Satellite</button>
+      </div>
+
+      <div id="panel-species" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+        <div class="sidebar-section species-section">
+          <label id="lbl-species"
+            style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; display: block;">Scegli un fungo</label>
+          <div id="species-list" class="species-list">
+            <!-- Cards will be injected by main.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Details panel (Hidden initially) -->
+      <div id="panel-details" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+        <div class="sidebar-section" style="padding: 10px 24px; background: rgba(0,0,0,0.03);">
+          <button id="btn-back"
+            style="background: none; border: none; font-weight: bold; cursor: pointer; color: var(--text-dark); display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+            <span>⬅</span> Torna ai funghi
+          </button>
+        </div>
+
+        <div class="sidebar-section">
+          <label id="lbl-locations">Località:</label>
+          <div class="button-group">
+            <button class="btn btn-loc" data-lat="45.875" data-lon="11.510">Asiago</button>
+            <button class="btn btn-loc" data-lat="45.700" data-lon="11.220">Recoaro</button>
+            <button class="btn btn-loc" data-lat="45.940" data-lon="11.270">Lavarone</button>
+            <button class="btn btn-loc btn-primary" id="btn-my-loc">📍 La Mia Posizione</button>
+          </div>
+        </div>
+
+
+
+        <div class="sidebar-section"
+          style="border-bottom: none; flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0;">
+          <h3 id="lbl-buzz">Community Buzz</h3>
+          <div id="buzz-panel" class="info-panel" style="flex: 1; overflow-y: auto; margin-bottom: 10px;">
+            <p>Caricamento notizie...</p>
+          </div>
+        </div>
+        
+        <!-- Legend moved here -->
+        <div class="sidebar-section" id="map-legend" style="border-top: 1px solid var(--border); padding-top: 10px; padding-bottom: 15px; margin: 0; background: rgba(0,0,0,0.02);">
+          <h4 id="lbl-legend" style="font-size: 0.85rem; margin-bottom: 8px;">Potenziale di Crescita (Mappa)</h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.75rem;">
+            <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(206, 147, 216, 0.6);"></span> &lt;40%</div>
+            <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(156, 39, 176, 0.7);"></span> 41-60%</div>
+            <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(106, 27, 154, 0.85);"></span> 61-80%</div>
+            <div style="display: flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); background: rgba(74, 20, 140, 1.0);"></span> 81-100%</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Map Container -->
+    <main id="map-container" style="position: relative;">
+      <!-- Mobile Back Button (Top Left, avoids notch) -->
+      <button id="btn-mobile-back" class="btn btn-primary" style="display: none; position: absolute; top: max(20px, env(safe-area-inset-top)); left: 20px; width: auto; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border-radius: 30px; padding: 10px 20px;">
+        ← Scegli Fungo
+      </button>
+      
+      <!-- Map Style Controls (Floating bottom center ON MOBILE) -->
+      <div class="mobile-map-controls" style="position: absolute; bottom: max(30px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 999; gap: 5px; background: var(--panel-bg); padding: 5px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <button id="btn-streets-mobile" class="btn btn-small" style="background: var(--primary); color: white; border: none; padding: 8px 16px;">Streets</button>
+        <button id="btn-satellite-mobile" class="btn btn-small" style="background: transparent; color: var(--text-dark); border: none; padding: 8px 16px;">Satellite</button>
+      </div>
+
+      <!-- Mobile Map Legend (Compact, bottom left) -->
+      <div class="mobile-map-legend" style="display: none; position: absolute; bottom: max(20px, env(safe-area-inset-bottom)); left: 10px; z-index: 999; background: var(--panel-bg); padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-size: 0.65rem;">
+        <div id="lbl-legend-mobile" style="margin-bottom: 4px; font-weight: bold; color: var(--text-dark);">Growth</div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center;"><span style="width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; background: rgba(206, 147, 216, 0.6);"></span> &lt;40%</div>
+          <div style="display: flex; align-items: center;"><span style="width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; background: rgba(156, 39, 176, 0.7);"></span> 41-60%</div>
+          <div style="display: flex; align-items: center;"><span style="width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; background: rgba(106, 27, 154, 0.85);"></span> 61-80%</div>
+          <div style="display: flex; align-items: center;"><span style="width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; background: rgba(74, 20, 140, 1.0);"></span> 81-100%</div>
+        </div>
+      </div>
+
+      <!-- Mobile Drawer Wrapper (contains both the sliding drawer and the handle so overflow doesn't clip the handle) -->
+      <div id="drawer-wrapper" style="position: absolute; top: 0; left: -280px; width: 280px; height: 100%; z-index: 1000; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; box-shadow: 4px 0 15px rgba(0,0,0,0.2);">
+        
+        <!-- The Inner Scrollable Drawer -->
+        <div id="mobile-drawer" style="flex: 1; height: 100%; background: var(--panel-bg); display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto;">
+          <!-- Drawer Header (Logo + Theme/Lang + Close) -->
+          <div class="sidebar-header" style="margin-bottom: 20px;">
+            <div class="logo" style="font-size: 1.2rem; margin: 0; color: white;">🍄 Fungi</div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-small" id="btn-theme-mobile">🌙</button>
+              <button class="btn btn-small" id="btn-lang-mobile">EN 🇬🇧</button>
+              <button id="btn-close-drawer" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; padding: 0 5px; margin-left: 5px;">&times;</button>
+            </div>
+          </div>
+          
+          <div style="padding: 0 20px 20px 20px; flex: 1; display: flex; flex-direction: column;">
+            <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--text-dark);">Località</h3>
+            <div class="button-group" style="margin-bottom: 20px;">
+              <button class="btn btn-loc" data-lat="45.875" data-lon="11.510">Asiago</button>
+              <button class="btn btn-loc" data-lat="45.700" data-lon="11.220">Recoaro</button>
+              <button class="btn btn-loc" data-lat="45.940" data-lon="11.270">Lavarone</button>
+              <button class="btn btn-loc btn-primary" id="btn-my-loc-mobile">📍 La Mia Posizione</button>
+            </div>
+            <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--text-dark);">Community Buzz</h3>
+            <div id="mobile-buzz-panel" class="info-panel" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 8px;">
+              <p>Caricamento notizie...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Physical Pull Handle Tab (Attached to the wrapper, outside the inner scrollable area) -->
+        <div id="drawer-handle" style="position: absolute; top: max(80px, env(safe-area-inset-top) + 60px); right: -36px; width: 36px; height: 50px; background: var(--panel-bg); box-shadow: 4px 0 8px rgba(0,0,0,0.15); border-radius: 0 10px 10px 0; display: flex; align-items: center; justify-content: center; cursor: pointer; border-left: 1px solid var(--border);">
+          <div style="width: 4px; height: 20px; background: #ccc; border-radius: 2px;"></div>
+        </div>
+      </div>
+      
+      <div id="map"></div>
+
+    </main>
+
+    <!-- Right Sidebar removed -->
+  </div>
+  <!-- Modal for Mushroom Info -->
+  <div id="info-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <button id="modal-close" class="modal-close-btn">&times;</button>
+      <img id="modal-img" src="" alt="Mushroom" class="modal-img">
+      <h2 id="modal-title">Name</h2>
+      <h4 id="modal-subtitle">Scientific</h4>
+      <div class="modal-body">
+        <p id="modal-desc">Description</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
