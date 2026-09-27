@@ -137,7 +137,11 @@ const i18n = {
     popup_mixed_3: "orniello",
     found: "Trovato 🍄",
     recorded: "Registrato! Grazie per aver contribuito al modello.",
-    saved_offline: "Salvato offline! Verrà sincronizzato appena tornerà la connessione."
+    saved_offline: "Salvato offline! Verrà sincronizzato appena tornerà la connessione.",
+    toast_title: "Conferma eliminazione",
+    toast_msg: "{user}, sei sicuro di voler eliminare questo record?",
+    toast_no: "No",
+    toast_yes: "Sì, elimina"
   },
   en: {
     lbl_species: "Select Species:",
@@ -200,7 +204,11 @@ const i18n = {
     popup_mixed_3: "manna ash",
     found: "Found 🍄",
     recorded: "Recorded successfully! Thank you for contributing to the model.",
-    saved_offline: "Saved offline! It will sync when the connection returns."
+    saved_offline: "Saved offline! It will sync when the connection returns.",
+    toast_title: "Confirm Deletion",
+    toast_msg: "{user}, are you sure you want to delete this record?",
+    toast_no: "No",
+    toast_yes: "Yes, Delete"
   },
   hi: {
     lbl_species: "प्रजाति चुनें:",
@@ -263,7 +271,11 @@ const i18n = {
     popup_mixed_3: "मन्ना ऐश",
     found: "मिला 🍄",
     recorded: "सफलतापूर्वक रिकॉर्ड किया गया! मॉडल में योगदान देने के लिए धन्यवाद।",
-    saved_offline: "ऑफ़लाइन सहेजा गया! कनेक्शन वापस आने पर यह सिंक हो जाएगा।"
+    saved_offline: "ऑफ़लाइन सहेजा गया! कनेक्शन वापस आने पर यह सिंक हो जाएगा।",
+    toast_title: "हटाने की पुष्टि करें",
+    toast_msg: "{user}, क्या आप वाकई इस रिकॉर्ड को हटाना चाहते हैं?",
+    toast_no: "नहीं",
+    toast_yes: "हाँ, हटाएँ"
   }
 };
 
@@ -1353,10 +1365,13 @@ window.deleteRecord = function(timestamp, username) {
   const btnNo = document.getElementById('toast-no');
   const btnClose = document.getElementById('toast-close');
 
-  const lang = window.currentLang || 'en';
-  msg.innerText = lang === 'it' 
-    ? `${username}, sei sicuro di voler eliminare questo record?`
-    : `${username}, are you sure you want to delete this record?`;
+  const t = i18n[currentLang] || i18n['en'];
+  
+  // Set translated texts
+  document.querySelector('#delete-toast h3').innerText = t.toast_title;
+  msg.innerText = t.toast_msg.replace('{user}', username);
+  btnNo.innerText = t.toast_no;
+  btnYes.innerText = t.toast_yes;
   
   toast.style.display = 'flex';
 
