@@ -3,11 +3,12 @@ import os
 from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
 import requests
 import base64
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -41,6 +42,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 _base_grids = {}
 
 app = FastAPI(title="Fungi Prediction API")
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.middleware("http")
 async def enforce_vault_lock(request, call_next):
@@ -342,7 +344,7 @@ def get_regions():
 
 
 @app.get("/predict/grid/{region_id}/{species_id}")
-def predict_grid(region_id: str, species_id: str):
+def predict_grid(region_id: str, species_id: str, response: Response):
     """Generate a GeoJSON grid of predictions for a region."""
     if region_id not in REGIONS:
         raise HTTPException(status_code=404, detail="Region not found")
@@ -437,6 +439,8 @@ def predict_grid(region_id: str, species_id: str):
                 },
             })
 
+    # Cache this heavy response in the browser for 6 hours
+    response.headers["Cache-Control"] = "public, max-age=21600"
     return {"type": "FeatureCollection", "features": features}
 
 

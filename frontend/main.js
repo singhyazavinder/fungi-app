@@ -586,7 +586,10 @@ map.on('styledata', () => {
 });
 
 // Handle Map Clicks
-map.on('click', async (e) => {
+let clickTimeout = null;
+map.on('click', (e) => {
+  if (clickTimeout) clearTimeout(clickTimeout);
+  clickTimeout = setTimeout(async () => {
   let { lng, lat } = e.lngLat;
 
   const features = map.queryRenderedFeatures(e.point, { layers: ['predictions-fill'] });
@@ -683,6 +686,7 @@ map.on('click', async (e) => {
   } else {
     await fetchPrediction(lat, lng, clickedScore);
   }
+  }, 300); // 300ms debounce
 });
 
 // Load grids and borders automatically on map load
@@ -740,7 +744,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-const handleMyLoc = () => {
+const handleMyLoc = async () => {
+  // On iOS 13+, we must explicitly ask the user for permission to use the compass (DeviceOrientation)
+  // This allows the "walking shadow" (heading cone) to appear even when standing still.
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      await DeviceOrientationEvent.requestPermission();
+    } catch (e) {
+      console.warn('Orientation permission not supported or denied', e);
+    }
+  }
+
   geolocate.trigger();
   const drawer = document.getElementById('drawer-wrapper');
   if (drawer && drawer.classList.contains('drawer-open')) {
