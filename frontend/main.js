@@ -1325,7 +1325,7 @@ document.getElementById('btn-records').addEventListener('click', async () => {
               <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
             </div>
           </div>
-          <button onclick="deleteRecord('${rec.timestamp}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
+          <button onclick="deleteRecord('${rec.timestamp}', '${collector}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
         `;
       } else {
         card.innerHTML = `
@@ -1334,7 +1334,7 @@ document.getElementById('btn-records').addEventListener('click', async () => {
             <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
             <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
           </div>
-          <button onclick="deleteRecord('${rec.timestamp}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
+          <button onclick="deleteRecord('${rec.timestamp}', '${collector}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
         `;
       }
       
@@ -1346,20 +1346,45 @@ document.getElementById('btn-records').addEventListener('click', async () => {
   }
 });
 
-window.deleteRecord = async function(timestamp) {
-  if (!confirm('Sei sicuro di voler eliminare questo record?')) return;
-  try {
-    const response = await fetch(`${API_URL}/record`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lat: 0, lon: 0, species_id: 'unknown', action: 'delete', timestamp: timestamp })
-    });
-    if (response.ok) {
-      document.getElementById('btn-records').click(); // Reload the records panel
+window.deleteRecord = function(timestamp, username) {
+  const toast = document.getElementById('delete-toast');
+  const msg = document.getElementById('toast-msg');
+  const btnYes = document.getElementById('toast-yes');
+  const btnNo = document.getElementById('toast-no');
+  const btnClose = document.getElementById('toast-close');
+
+  const lang = window.currentLang || 'en';
+  msg.innerText = lang === 'it' 
+    ? `${username}, sei sicuro di voler eliminare questo record?`
+    : `${username}, are you sure you want to delete this record?`;
+  
+  toast.style.display = 'flex';
+
+  const cleanup = () => {
+    toast.style.display = 'none';
+    btnYes.onclick = null;
+    btnNo.onclick = null;
+    btnClose.onclick = null;
+  };
+
+  btnNo.onclick = cleanup;
+  btnClose.onclick = cleanup;
+
+  btnYes.onclick = async () => {
+    cleanup();
+    try {
+      const response = await fetch(`${API_URL}/record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: 0, lon: 0, species_id: 'unknown', action: 'delete', timestamp: timestamp })
+      });
+      if (response.ok) {
+        document.getElementById('btn-records').click(); // Reload the records panel
+      }
+    } catch (err) {
+      console.error(err);
     }
-  } catch (err) {
-    console.error(err);
-  }
+  };
 };
 
 window.flyToRecord = function(lat, lon, name, img, collector) {
