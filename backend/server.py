@@ -71,6 +71,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+def startup_sync_records():
+    """Fetch the latest records from GitHub on startup since Render disk is ephemeral."""
+    import os
+    import requests
+    import base64
+
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_repo = os.environ.get("GITHUB_REPO")
+    if not github_token or not github_repo:
+        print("Skipping GitHub startup sync: missing credentials")
+        return
+
+    url = f"https://api.github.com/repos/{github_repo}/contents/data/user_records.jsonl"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    try:
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            data = res.json()
+            content = base64.b64decode(data["content"]).decode('utf-8')
+            
+            os.makedirs("data", exist_ok=True)
+            with open("data/user_records.jsonl", "w") as f:
+                f.write(content)
+            print("Successfully restored user_records.jsonl from GitHub on startup.")
+    except Exception as e:
+        print(f"Failed to restore records from GitHub: {e}")
 
 class PredictionRequest(BaseModel):
     lat: float
