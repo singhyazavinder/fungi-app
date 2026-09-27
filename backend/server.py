@@ -8,7 +8,6 @@ import requests
 import base64
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -42,7 +41,6 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 _base_grids = {}
 
 app = FastAPI(title="Fungi Prediction API")
-app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.middleware("http")
 async def enforce_vault_lock(request, call_next):
