@@ -244,8 +244,6 @@ def record_sighting(req: RecordRequest, background_tasks: BackgroundTasks):
     import json
     import os
     
-    sync_from_github()
-    
     os.makedirs("data", exist_ok=True)
     records_file = "data/user_records.jsonl"
     
