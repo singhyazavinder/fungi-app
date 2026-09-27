@@ -1361,12 +1361,12 @@ window.deleteRecord = async function(timestamp) {
 };
 
 window.flyToRecord = function(lat, lon, name) {
-  // Close the records panel
-  document.getElementById('btn-records-back').click();
-  // Close mobile drawer if it's open
+  // Close mobile drawer if it's open so the user can see the map
   const drawer = document.getElementById('drawer-wrapper');
   if (drawer && drawer.classList.contains('drawer-open')) {
     drawer.classList.remove('drawer-open');
+    // Important: trigger map resize after a tiny delay so it fills the screen properly
+    setTimeout(() => { map.resize(); }, 300);
   }
 
   // Fly to location
