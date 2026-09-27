@@ -347,28 +347,28 @@ def predict_grid(region_id: str, species_id: str):
                 in_forest_flag = is_in_forest(lat, lon, region_id)
             
             # Pre-calculate the geometry for this cell since it's also static
-            lat_step = 250.0 / 111320.0 / 2
-            lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
-            geometry = {
-                "type": "Polygon", 
-                "coordinates": [[
-                    [lon - lon_step, lat - lat_step],
-                    [lon + lon_step, lat - lat_step],
-                    [lon + lon_step, lat + lat_step],
-                    [lon - lon_step, lat + lat_step],
-                    [lon - lon_step, lat - lat_step],
-                ]]
-            }
+                lat_step = 250.0 / 111320.0 / 2
+                lon_step = 250.0 / (111320.0 * math.cos(math.radians(lat))) / 2
+                geometry = {
+                    "type": "Polygon", 
+                    "coordinates": [[
+                        [lon - lon_step, lat - lat_step],
+                        [lon + lon_step, lat - lat_step],
+                        [lon + lon_step, lat + lat_step],
+                        [lon - lon_step, lat + lat_step],
+                        [lon - lon_step, lat - lat_step],
+                    ]]
+                }
             
-            _base_grids[region_id].append({
-                "lat": lat,
-                "lon": lon,
-                "terrain": terrain,
-                "in_forest_flag": in_forest_flag,
-                "geometry": geometry
-            })
+                _base_grids[region_id].append({
+                    "lat": lat,
+                    "lon": lon,
+                    "terrain": terrain,
+                    "in_forest_flag": in_forest_flag,
+                    "geometry": geometry
+                })
             
-    base_grid = _base_grids[region_id]
+        base_grid = _base_grids[region_id]
         features = []
 
         # Process each precomputed point rapidly
