@@ -1315,17 +1315,23 @@ document.getElementById('btn-records').addEventListener('click', async () => {
       
       if (sp) {
         card.innerHTML = `
-          <img src="${sp.img}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-          <div style="flex: 1;">
-            <div style="font-weight: 600; font-size: 0.95rem;">${spName}</div>
-            <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
-            <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
+          <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${spName.replace(/'/g, "\\'")}')" style="display: flex; flex: 1; align-items: center; gap: 10px; cursor: pointer;">
+            <img src="${sp.img}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; font-size: 0.95rem;">${spName}</div>
+              <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
+              <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
+            </div>
           </div>
           <button onclick="deleteRecord('${rec.timestamp}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
         `;
       } else {
         card.innerHTML = `
-          <div style="flex: 1;">${rec.species_id} <br> ${dateStr} <br> 👤 ${rec.username || 'Anonymous'}</div>
+          <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${rec.species_id.replace(/'/g, "\\'")}')" style="flex: 1; cursor: pointer;">
+            <div style="font-weight: 600; font-size: 0.95rem;">${rec.species_id}</div>
+            <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
+            <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
+          </div>
           <button onclick="deleteRecord('${rec.timestamp}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
         `;
       }
@@ -1352,6 +1358,29 @@ window.deleteRecord = async function(timestamp) {
   } catch (err) {
     console.error(err);
   }
+};
+
+window.flyToRecord = function(lat, lon, name) {
+  // Close the records panel
+  document.getElementById('btn-records-back').click();
+  // Close mobile drawer if it's open
+  const drawer = document.getElementById('drawer-wrapper');
+  if (drawer && drawer.classList.contains('drawer-open')) {
+    drawer.classList.remove('drawer-open');
+  }
+
+  // Fly to location
+  map.flyTo({ center: [lon, lat], zoom: 15 });
+
+  // Place marker and popup
+  if (marker) marker.remove();
+  marker = new maplibregl.Marker({ color: '#ffb300' }).setLngLat([lon, lat]).addTo(map);
+  
+  if (currentPopup) currentPopup.remove();
+  currentPopup = new maplibregl.Popup({ closeOnClick: false, offset: 25 })
+    .setLngLat([lon, lat])
+    .setHTML(`<div style="padding:5px 10px; font-weight:bold; font-size:1rem; text-align:center;">🍄 ${name}</div>`)
+    .addTo(map);
 };
 
 // Initial render
