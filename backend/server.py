@@ -312,12 +312,13 @@ def get_regions():
 @app.get("/predict/grid/{region_id}/{species_id}")
 def predict_grid(region_id: str, species_id: str):
     """Generate a GeoJSON grid of predictions for a region."""
-    if region_id not in REGIONS:
-        raise HTTPException(status_code=404, detail="Region not found")
-    if species_id not in SPECIES_PROFILES:
-        raise HTTPException(status_code=404, detail="Species not found")
+    try:
+        if region_id not in REGIONS:
+            raise HTTPException(status_code=404, detail="Region not found")
+        if species_id not in SPECIES_PROFILES:
+            raise HTTPException(status_code=404, detail="Species not found")
 
-    bounds = REGIONS[region_id]
+        bounds = REGIONS[region_id]
     center_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2
     center_lon = (bounds["lon_min"] + bounds["lon_max"]) / 2
 
@@ -394,18 +395,21 @@ def predict_grid(region_id: str, species_id: str):
             region=region_id,
         )
 
-        if score > 0:
-            features.append({
-                "type": "Feature",
-                "geometry": point["geometry"],
-                "properties": {
-                    "score": score,
-                    "elevation": terrain["elevation"],
-                    "tree_type": tree_type,
-                },
-            })
+            if score > 0:
+                features.append({
+                    "type": "Feature",
+                    "geometry": point["geometry"],
+                    "properties": {
+                        "score": score,
+                        "elevation": terrain["elevation"],
+                        "tree_type": tree_type,
+                    },
+                })
 
-    return {"type": "FeatureCollection", "features": features}
+        return {"type": "FeatureCollection", "features": features}
+    except Exception as e:
+        import traceback
+        return JSONResponse(status_code=500, content={"detail": f"Error: {str(e)}\n{traceback.format_exc()}"})
 
 
 @app.get("/buzz")
