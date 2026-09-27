@@ -1431,7 +1431,7 @@ window.flyToRecord = function (lat, lon, name, img, collector) {
       <div style="display: flex; align-items: center; gap: 10px; padding: 5px; min-width: 150px;">
         <img src="${img}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
         <div>
-          <div style="font-weight:bold; font-size:1rem; color: var(--text); white-space: nowrap;">${name}</div>
+          <div style="font-weight:bold; font-size:1rem; color: var(--text);">${name}</div>
           <div style="font-size:0.8rem; color: var(--primary);">👤 ${collector}</div>
         </div>
       </div>
@@ -1439,7 +1439,7 @@ window.flyToRecord = function (lat, lon, name, img, collector) {
   } else {
     popupHTML = `
       <div style="padding: 5px; min-width: 150px;">
-        <div style="font-weight:bold; font-size:1rem; color: var(--text); white-space: nowrap;">${name}</div>
+        <div style="font-weight:bold; font-size:1rem; color: var(--text);">${name}</div>
         <div style="font-size:0.8rem; color: var(--primary);">👤 ${collector}</div>
       </div>
     `;
@@ -2007,7 +2007,9 @@ window.handleCustomMushroom = function (val, lat, lon) {
 };
 
 window.recordSighting = async function (lat, lon, species_id, action) {
-  const record = { lat, lon, species_id, action, username: userName, timestamp: new Date().toISOString() };
+  // Format the time as YYYY-MM-DDTHH:mm:ss for Italy
+  const italyTime = new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Rome' }).replace(' ', 'T');
+  const record = { lat, lon, species_id, action, username: userName, timestamp: italyTime };
   if (!navigator.onLine) {
     const offlineRecords = JSON.parse(localStorage.getItem('fungi_offline_records') || '[]');
     offlineRecords.push(record);
