@@ -26,7 +26,7 @@ window.fetch = function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (secretPassword) {
+  if (secretPassword && userName && userName !== "Anonymous") {
     document.getElementById('vault-lock').style.display = 'none';
     document.getElementById('app').style.opacity = '1';
   } else {
@@ -1555,7 +1555,10 @@ function renderPrediction(data) {
             return `
               <div data-species="${sp.id}" style="min-width: 65px; max-width: 65px; text-align: center; cursor: pointer; user-select: none;" 
                    onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
-                <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
+                <div style="position: relative; display: inline-block;">
+                  <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
+                  <div id="swipe-tick-${sp.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,0.8); opacity: 0; transition: 0.2s; pointer-events: none;">✓</div>
+                </div>
                 <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
               </div>
             `;
@@ -1679,7 +1682,10 @@ function renderPrediction(data) {
         return `
           <div data-species="${sp.id}" style="min-width: 65px; max-width: 65px; text-align: center; cursor: pointer; user-select: none;" 
                onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
-            <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
+            <div style="position: relative; display: inline-block;">
+              <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
+              <div id="swipe-tick-${sp.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,0.8); opacity: 0; transition: 0.2s; pointer-events: none;">✓</div>
+            </div>
             <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
           </div>
         `;
@@ -1975,19 +1981,26 @@ window.handleSwipeRecord = function(el, lat, lon, species_id) {
   el.dataset.lastClick = now;
 
   const imgEl = document.getElementById(`swipe-img-${species_id}`);
+  const tickEl = document.getElementById(`swipe-tick-${species_id}`);
 
   if (now - lastClick < 400) {
     // Double tap - UNDO
-    imgEl.style.borderColor = 'transparent';
-    imgEl.style.opacity = '1';
+    if (imgEl) {
+      imgEl.style.borderColor = 'transparent';
+      imgEl.style.opacity = '1';
+    }
+    if (tickEl) tickEl.style.opacity = '0';
     window.recordSighting(lat, lon, species_id, 'undo_found');
   } else {
     // Single tap - wait briefly to confirm it's not a double tap
     setTimeout(() => {
       if (parseInt(el.dataset.lastClick) === now) {
         // Confirmed single tap
-        imgEl.style.borderColor = '#4CAF50';
-        imgEl.style.opacity = '0.7';
+        if (imgEl) {
+          imgEl.style.borderColor = '#4CAF50';
+          imgEl.style.opacity = '0.7';
+        }
+        if (tickEl) tickEl.style.opacity = '1';
         window.recordSighting(lat, lon, species_id, 'found');
       }
     }, 450);
