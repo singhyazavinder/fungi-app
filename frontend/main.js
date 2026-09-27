@@ -1421,7 +1421,15 @@ window.flyToRecord = function (lat, lon, name, img, collector) {
 
   // Place marker and popup
   if (marker) marker.remove();
-  marker = new maplibregl.Marker({ color: '#ffb300' }).setLngLat([lon, lat]).addTo(map);
+  
+  const markerEl = document.createElement('div');
+  const imgHtml = img ? `<img src="${img}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">` : `<span style="font-size: 16px;">🍄</span>`;
+  markerEl.innerHTML = `<div style="display:flex; align-items:center; background:var(--surface); border:2px solid var(--primary); border-radius:20px; padding:2px 8px 2px 2px; box-shadow:0 2px 5px rgba(0,0,0,0.3); gap:5px; cursor:pointer;">
+    ${imgHtml}
+    <span style="font-size:0.75rem; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px;">${collector}</span>
+  </div>`;
+  
+  marker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' }).setLngLat([lon, lat]).addTo(map);
 
   if (currentPopup) currentPopup.remove();
 
@@ -1611,7 +1619,7 @@ function renderPrediction(data) {
                    onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
                 <div style="position: relative; display: inline-block;">
                   <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
-                  <div id="swipe-tick-${sp.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,0.8); opacity: 0; transition: 0.2s; pointer-events: none;">✓</div>
+                  <div id="swipe-tick-${sp.id}" style="position: absolute; bottom: 0; right: 0; background: #4CAF50; color: white; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; pointer-events: none; border: 2px solid white; z-index: 10;">✓</div>
                 </div>
                 <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
               </div>
@@ -1738,7 +1746,7 @@ function renderPrediction(data) {
                onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
             <div style="position: relative; display: inline-block;">
               <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
-              <div id="swipe-tick-${sp.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,0.8); opacity: 0; transition: 0.2s; pointer-events: none;">✓</div>
+              <div id="swipe-tick-${sp.id}" style="position: absolute; bottom: 0; right: 0; background: #4CAF50; color: white; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; pointer-events: none; border: 2px solid white; z-index: 10;">✓</div>
             </div>
             <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
           </div>
