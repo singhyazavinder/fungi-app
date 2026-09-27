@@ -319,32 +319,32 @@ def predict_grid(region_id: str, species_id: str):
             raise HTTPException(status_code=404, detail="Species not found")
 
         bounds = REGIONS[region_id]
-    center_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2
-    center_lon = (bounds["lon_min"] + bounds["lon_max"]) / 2
+        center_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2
+        center_lon = (bounds["lon_min"] + bounds["lon_max"]) / 2
 
-    buzz_data = get_community_buzz()
+        buzz_data = get_community_buzz()
 
-    regional_weather = get_regional_weather(bounds)
+        regional_weather = get_regional_weather(bounds)
 
-    # Query soil ONCE for the region center (as soil pH doesn't vary as dynamically as weather)
-    center_soil_ph = get_soil_ph(center_lat, center_lon)
+        # Query soil ONCE for the region center (as soil pH doesn't vary as dynamically as weather)
+        center_soil_ph = get_soil_ph(center_lat, center_lon)
 
-    # Get terrain for the center to use for altitude-based temperature adjustment (lapse rate)
-    center_terrain = get_terrain_data(center_lat, center_lon)
+        # Get terrain for the center to use for altitude-based temperature adjustment (lapse rate)
+        center_terrain = get_terrain_data(center_lat, center_lon)
 
-    grid_points = generate_grid(region_id, 250.0)
-    # Lazily precompute and cache the static terrain grid for the region
-    if region_id not in _base_grids:
-        print(f"Precomputing static terrain for {region_id} (this only happens once)...")
-        _base_grids[region_id] = []
-        
-        # Process sequentially to prevent GDAL memory leaks
-        for lat, lon in grid_points:
-            terrain = get_terrain_data(lat, lon)
-            if terrain["elevation"] == 0.0:
-                continue
-                
-            in_forest_flag = is_in_forest(lat, lon, region_id)
+        grid_points = generate_grid(region_id, 250.0)
+        # Lazily precompute and cache the static terrain grid for the region
+        if region_id not in _base_grids:
+            print(f"Precomputing static terrain for {region_id} (this only happens once)...")
+            _base_grids[region_id] = []
+            
+            # Process sequentially to prevent GDAL memory leaks
+            for lat, lon in grid_points:
+                terrain = get_terrain_data(lat, lon)
+                if float(terrain["elevation"]) == 0.0:
+                    continue
+                    
+                in_forest_flag = is_in_forest(lat, lon, region_id)
             
             # Pre-calculate the geometry for this cell since it's also static
             lat_step = 250.0 / 111320.0 / 2
@@ -369,39 +369,39 @@ def predict_grid(region_id: str, species_id: str):
             })
             
     base_grid = _base_grids[region_id]
-    features = []
+        features = []
 
-    # Process each precomputed point rapidly
-    for point in base_grid:
-        lat = point["lat"]
-        lon = point["lon"]
-        terrain = point["terrain"]
-        in_forest_flag = point["in_forest_flag"]
+        # Process each precomputed point rapidly
+        for point in base_grid:
+            lat = float(point["lat"])
+            lon = float(point["lon"])
+            terrain = point["terrain"]
+            in_forest_flag = point["in_forest_flag"]
 
-        local_weather_base = interpolate_weather(lat, lon, regional_weather)
-        elev_diff = terrain["elevation"] - center_terrain["elevation"]
-        local_weather = local_weather_base.copy()
-        local_weather["current_soil_temp_6cm"] -= (elev_diff / 100.0) * 0.65
+            local_weather_base = interpolate_weather(lat, lon, regional_weather)
+            elev_diff = float(terrain["elevation"]) - float(center_terrain["elevation"])
+            local_weather = local_weather_base.copy()
+            local_weather["current_soil_temp_6cm"] -= (elev_diff / 100.0) * 0.65
 
-        score, tree_type = calculate_score(
-            species_id,
-            local_weather,
-            terrain,
-            center_soil_ph,
-            community_buzz=buzz_data["buzz_score"],
-            in_forest=in_forest_flag,
-            lat=lat,
-            lon=lon,
-            region=region_id,
-        )
+            score, tree_type = calculate_score(
+                species_id,
+                local_weather,
+                terrain,
+                float(center_soil_ph),
+                community_buzz=float(buzz_data.get("buzz_score", 0.5)),
+                in_forest=in_forest_flag,
+                lat=lat,
+                lon=lon,
+                region=region_id,
+            )
 
             if score > 0:
                 features.append({
                     "type": "Feature",
                     "geometry": point["geometry"],
                     "properties": {
-                        "score": score,
-                        "elevation": terrain["elevation"],
+                        "score": float(score),
+                        "elevation": float(terrain["elevation"]),
                         "tree_type": tree_type,
                     },
                 })
