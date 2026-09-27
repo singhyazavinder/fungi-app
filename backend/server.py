@@ -72,7 +72,7 @@ app.add_middleware(
 )
 
 @app.on_event("startup")
-def startup_sync_records():
+def sync_from_github():
     """Fetch the latest records from GitHub on startup since Render disk is ephemeral."""
     import os
     import requests
@@ -243,6 +243,9 @@ def record_sighting(req: RecordRequest, background_tasks: BackgroundTasks):
     """Record a user sighting or collection, or undo it."""
     import json
     import os
+    
+    sync_from_github()
+    
     os.makedirs("data", exist_ok=True)
     records_file = "data/user_records.jsonl"
     
