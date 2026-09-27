@@ -657,149 +657,215 @@ def is_in_forest(lat: float, lon: float, region_id: str) -> bool:
 if __name__ == "__main__":
     download_forest_data()
 import time
+import urllib.parse
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 import feedparser
-import requests
-from bs4 import BeautifulSoup
 
-NEWS_FEEDS = [
-    {"name": "L'Adige", "url": "https://www.ladige.it/rss.xml", "area": "Lavarone"},
-    {
-        "name": "Giornale dell'Altopiano",
-        "url": "https://www.giornalealtopiano.it/feed/",
-        "area": "Asiago",
+# --- COMMUNITY BUZZ SYSTEM (Google News RSS Aggregator per Region) ---
+
+REGION_SEARCH_TERMS = {
+    "asiago": {
+        "towns": ["Asiago", "Gallio", "Roana", "Rotzo", "Lusiana", "Conco", "Enego", "Foza"],
+        "area_label": "Altopiano di Asiago",
     },
-    {
-        "name": "L'Eco Vicentino",
-        "url": "https://www.ecovicentino.it/feed/",
-        "area": "Vicenza",
+    "recoaro": {
+        "towns": ["Recoaro", "Valdagno", "Schio", "Pasubio", "Piccole Dolomiti"],
+        "area_label": "Recoaro Terme",
     },
+    "lavarone": {
+        "towns": ["Lavarone", "Folgaria", "Luserna", "Vezzena", "Caldonazzo", "Levico"],
+        "area_label": "Altopiano di Lavarone",
+    },
+}
+
+# Foraging-specific gate: article must contain at least one to be counted
+FORAGING_GATE = [
+    "raccolta", "raccolto", "trovati", "trovato", "cercatori",
+    "bosco", "boschi", "sottobosco", "buttata", "buttate",
+    "stagione", "micologico", "micologica", "porcini",
+    "crescita", "crescono", "spuntano", "spuntati",
+    "permesso", "multe", "controlli forestali",
+    "avvelenamento", "intossicazione",
+    "altopiano", "malga", "sentiero", "quota",
 ]
 
-EXTERNAL_PORTALS = [
-    {"name": "3BMeteo Mico", "url": "https://www.3bmeteo.com/previsioni-funghi"},
-    {"name": "MeteoFunghi", "url": "https://www.meteofunghi.it"},
-    {"name": "FungoCenter", "url": "https://www.fungocenter.it"},
+POSITIVE_KEYWORDS = [
+    "trovati", "trovato", "abbondanti", "abbondanza",
+    "buttata", "buttate", "boom", "primi porcini",
+    "bella raccolta", "buona raccolta", "stagione favorevole",
+    "condizioni ideali", "condizioni perfette",
+    "piogge benefiche", "crescita", "crescono",
+    "ottima", "eccellente", "spuntano", "spuntati",
+]
+
+NEGATIVE_KEYWORDS = [
+    "siccità", "secco", "secca", "mancano", "niente funghi",
+    "caldo eccessivo", "troppo caldo", "stagione difficile",
+    "deludente", "scarsa", "scarsi",
+    "avvelenamento", "intossicazione", "veleno",
+    "multe", "divieto", "sequestro",
+    "neve", "gelate", "gelo",
 ]
 
 
-def scrape_rss_feeds() -> List[Dict]:
-    """Scrapes RSS feeds for mushroom-related news (funghi, porcini, etc.)"""
-    keywords = [
-        "funghi",
-        "porcini",
-        "finferli",
-        "morchelle",
-        "micologico",
-        "micologica",
-    ]
+def _build_google_news_url(region_id: str) -> str:
+    """Build a Google News RSS URL for a specific region's mushroom news."""
+    terms = REGION_SEARCH_TERMS.get(region_id, {})
+    towns = terms.get("towns", [])
+
+    mushroom_part = "funghi OR porcini OR finferli OR chiodini OR morchelle OR spugnole"
+    towns_part = " OR ".join(towns)
+
+    query = f"({mushroom_part}) ({towns_part})"
+    encoded = urllib.parse.quote(query)
+
+    return f"https://news.google.com/rss/search?q={encoded}&hl=it&gl=IT&ceid=IT:it"
+
+
+def _score_article_sentiment(title: str) -> int:
+    """Returns +N for positive, -N for negative sentiment in a title."""
+    title_lower = title.lower()
+    pos = sum(1 for kw in POSITIVE_KEYWORDS if kw in title_lower)
+    neg = sum(1 for kw in NEGATIVE_KEYWORDS if kw in title_lower)
+    return pos - neg
+
+
+def _fetch_region_news(region_id: str) -> List[Dict]:
+    """Fetch and filter mushroom foraging news for a specific region."""
+    url = _build_google_news_url(region_id)
+    area_label = REGION_SEARCH_TERMS.get(region_id, {}).get("area_label", region_id.title())
+
     results = []
+    try:
+        parsed = feedparser.parse(url)
+        cutoff = datetime.now() - timedelta(days=7)
 
-    for feed in NEWS_FEEDS:
-        try:
-            parsed = feedparser.parse(feed["url"])
-            for entry in parsed.entries[:20]:  # Check last 20 entries
-                text = (entry.title + " " + getattr(entry, "summary", "")).lower()
+        for entry in parsed.entries[:30]:
+            title = entry.get("title", "")
+            title_lower = title.lower()
 
-                if any(kw in text for kw in keywords):
-                    results.append(
-                        {
-                            "source": feed["name"],
-                            "area": feed["area"],
-                            "title": entry.title,
-                            "link": entry.link,
-                            "date": getattr(
-                                entry, "published", time.strftime("%Y-%m-%d")
-                            ),
-                            "type": "news",
-                        }
-                    )
-        except Exception as e:
-            print(f"Error scraping {feed['name']}: {e}")
+            # FORAGING GATE: Must be about mushroom foraging, not recipes/festivals
+            if not any(kw in title_lower for kw in FORAGING_GATE):
+                continue
+
+            # Parse publish date
+            pub_date = ""
+            if hasattr(entry, "published_parsed") and entry.published_parsed:
+                try:
+                    pub_dt = datetime(*entry.published_parsed[:6])
+                    if pub_dt < cutoff:
+                        continue  # Older than 7 days, skip
+                    pub_date = pub_dt.strftime("%Y-%m-%d")
+                except Exception:
+                    pub_date = getattr(entry, "published", time.strftime("%Y-%m-%d"))
+            else:
+                pub_date = time.strftime("%Y-%m-%d")
+
+            # Extract source name from Google News title format: "Title - Source"
+            source = "Google News"
+            if " - " in title:
+                parts = title.rsplit(" - ", 1)
+                if len(parts) == 2:
+                    title = parts[0].strip()
+                    source = parts[1].strip()
+
+            sentiment = _score_article_sentiment(title)
+
+            results.append({
+                "source": source,
+                "area": area_label,
+                "region_id": region_id,
+                "title": title,
+                "link": entry.get("link", "#"),
+                "date": pub_date,
+                "type": "news",
+                "sentiment": sentiment,
+            })
+    except Exception as e:
+        print(f"Error fetching news for {region_id}: {e}")
 
     return results
 
 
-def check_competitor_portals() -> List[Dict]:
-    """Checks competitor websites for positive growth signals."""
-    positive_keywords = [
-        "crescita",
-        "alta probabilità",
-        "ottimo",
-        "favorevole",
-        "buttata",
-        "porcini",
-        "fermento",
-    ]
-    results = []
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-    }
+def _calculate_region_buzz(articles: List[Dict]) -> Dict:
+    """Calculate buzz level for a region based on its filtered articles."""
+    if not articles:
+        return {
+            "buzz_score": 0.05,
+            "level": "Calmo",
+            "color": "#9e9e9e",
+            "message": "Nessuna notizia rilevante trovata di recente.",
+        }
 
-    for portal in EXTERNAL_PORTALS:
-        try:
-            # We use a short timeout so the UI doesn't lag if they block us
-            resp = requests.get(portal["url"], headers=headers, timeout=3)
-            if resp.status_code == 200:
-                text = resp.text.lower()
-                match_count = sum(1 for kw in positive_keywords if kw in text)
-                if match_count > 2:
-                    results.append(
-                        {
-                            "source": portal["name"],
-                            "area": "Nord Italia",
-                            "title": f"Segnali positivi rilevati su {portal['name']} ({match_count} indicatori)",
-                            "link": portal["url"],
-                            "date": time.strftime("%Y-%m-%d"),
-                            "type": "portal",
-                        }
-                    )
-        except Exception as e:
-            print(f"Failed to reach {portal['name']}: {e}")
+    # Volume score: more articles = more buzz (capped at 0.5)
+    volume_score = min(0.5, len(articles) * 0.05)
 
-    return results
+    # Sentiment score
+    net_sentiment = sum(a.get("sentiment", 0) for a in articles)
+    if net_sentiment > 0:
+        sentiment_boost = min(0.45, net_sentiment * 0.08)
+    else:
+        sentiment_boost = max(-0.4, net_sentiment * 0.08)
+
+    buzz_score = max(0.05, min(0.95, volume_score + sentiment_boost))
+
+    if buzz_score > 0.7:
+        return {
+            "buzz_score": buzz_score,
+            "level": "Alto Fermento",
+            "color": "#e65100",
+            "message": "Condizioni eccellenti riportate dalla community!",
+        }
+    elif buzz_score > 0.35:
+        return {
+            "buzz_score": buzz_score,
+            "level": "Moderato",
+            "color": "#f57c00",
+            "message": "Alcune segnalazioni positive in corso.",
+        }
+    else:
+        return {
+            "buzz_score": buzz_score,
+            "level": "Calmo",
+            "color": "#9e9e9e",
+            "message": "Poche notizie rilevanti trovate di recente.",
+        }
 
 
 _buzz_cache = {"data": None, "timestamp": 0}
 
 
 def get_community_buzz() -> Dict:
-    """Aggregates all community intelligence into a buzz score and alerts."""
+    """Aggregates community intelligence per region using Google News RSS."""
     global _buzz_cache
     if time.time() - _buzz_cache["timestamp"] < 21600:  # Cache for 6 hours
         return _buzz_cache["data"]
 
-    alerts = scrape_rss_feeds()
-    portals = check_competitor_portals()
+    all_alerts = []
+    regions_buzz = {}
 
-    all_alerts = alerts + portals
+    for region_id in REGION_SEARCH_TERMS:
+        articles = _fetch_region_news(region_id)
+        all_alerts.extend(articles)
+        regions_buzz[region_id] = _calculate_region_buzz(articles)
 
-    # Calculate dynamic score based on findings
-    base_score = 0.1
-    if len(all_alerts) > 0:
-        base_score = min(0.95, 0.2 + (len(all_alerts) * 0.15))
-
-    if base_score > 0.7:
-        buzz = {
-            "level": "Alto Fermento",
-            "color": "#e65100",
-            "message": "Condizioni eccellenti riportate dai portali e dalla community!",
-        }
-    elif base_score > 0.4:
-        buzz = {
-            "level": "Moderato",
-            "color": "#f57c00",
-            "message": "Alcune segnalazioni positive in corso.",
-        }
+    # Calculate a global average for backward compatibility
+    if regions_buzz:
+        avg_score = sum(r["buzz_score"] for r in regions_buzz.values()) / len(regions_buzz)
     else:
-        buzz = {
-            "level": "Calmo",
-            "color": "#9e9e9e",
-            "message": "Nessuna notizia rilevante trovata di recente.",
-        }
+        avg_score = 0.05
 
-    result = {"buzz": buzz, "alerts": all_alerts, "buzz_score": base_score}
+    # Global buzz level
+    if avg_score > 0.7:
+        global_buzz = {"level": "Alto Fermento", "color": "#e65100", "message": "Condizioni eccellenti riportate dalla community!"}
+    elif avg_score > 0.35:
+        global_buzz = {"level": "Moderato", "color": "#f57c00", "message": "Alcune segnalazioni positive in corso."}
+    else:
+        global_buzz = {"level": "Calmo", "color": "#9e9e9e", "message": "Nessuna notizia rilevante trovata di recente."}
+
+    result = {"buzz": global_buzz, "alerts": all_alerts, "buzz_score": avg_score, "regions": regions_buzz}
     _buzz_cache = {"data": result, "timestamp": time.time()}
     return result
 

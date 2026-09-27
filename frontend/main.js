@@ -1819,37 +1819,42 @@ async function fetchBuzz() {
     const data = await res.json();
     const panel = document.getElementById('buzz-panel');
 
-    // Translate level
-    let level = data.buzz.level;
-    if (level === 'Calmo') level = t.buzz_calm;
-    if (level === 'Moderato') level = t.buzz_mod;
-    if (level === 'Frenetico') level = t.buzz_high;
+    const regionNames = { asiago: 'Asiago', recoaro: 'Recoaro', lavarone: 'Lavarone' };
 
-    // Translate message
-    let msg = data.buzz.message;
-    if (msg.includes('Nessuna notizia')) msg = t.buzz_none;
+    // Per-region buzz indicators
+    let html = `<div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">`;
+    if (data.regions) {
+      for (const [regionId, regionBuzz] of Object.entries(data.regions)) {
+        let level = regionBuzz.level;
+        if (level === 'Calmo') level = t.buzz_calm || 'Calmo';
+        if (level === 'Moderato') level = t.buzz_mod || 'Moderato';
+        if (level === 'Alto Fermento') level = t.buzz_high || 'Alto Fermento';
+        html += `
+          <div style="flex: 1; min-width: 85px; background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; padding: 8px 6px; text-align: center; border-left: 3px solid ${regionBuzz.color};">
+            <div style="font-weight: bold; font-size: 0.8rem; color: var(--text-dark);">${regionNames[regionId] || regionId}</div>
+            <div style="font-size: 0.7rem; color: ${regionBuzz.color}; font-weight: 600; margin-top: 2px;">${level}</div>
+          </div>`;
+      }
+    }
+    html += `</div>`;
 
-    let html = `
-      <div style="margin-bottom: 10px; display: flex; align-items: center;">
-        <span class="color-box" style="background: ${data.buzz.color};"></span>
-        <strong style="margin-left: 5px;">${level}</strong>
-      </div>
-      <p style="font-size: 0.85rem; margin-bottom: 15px;">${msg}</p>
-    `;
-
+    // News articles list
     if (data.alerts && data.alerts.length > 0) {
-      html += `<ul style="list-style: none; padding: 0; font-size: 0.8rem;">`;
+      html += `<ul style="list-style: none; padding: 0; font-size: 0.8rem; max-height: 300px; overflow-y: auto;">`;
       data.alerts.forEach(alert => {
-        html += `<li class="news-flash" style="margin-bottom: 12px; border-left: 3px solid var(--primary); padding-left: 10px; background: rgba(255,255,255,0.5); padding: 8px 8px 8px 12px; border-radius: 0 6px 6px 0;">
-          <a href="${alert.link}" target="_blank" style="color: #0066cc; text-decoration: none; font-size: 0.95rem;"><strong>${alert.title}</strong></a>
-          <br><span style="color: var(--text-light); font-size: 0.8rem; display: block; margin-top: 4px;">
-            📰 ${alert.source} • 📍 ${alert.area}
-            <br>🕒 <em>${alert.date || t.buzz_recent}</em>
-          </span>
+        const sentimentIcon = alert.sentiment > 0 ? '🟢' : (alert.sentiment < 0 ? '🔴' : '⚪');
+        html += `<li style="margin-bottom: 10px; border: 1px solid var(--border); border-left: 3px solid var(--primary); padding: 8px 8px 8px 12px; background: var(--bg-color); border-radius: 4px;">
+          <a href="${alert.link}" target="_blank" style="color: #3b82f6; text-decoration: none; font-size: 0.85rem; line-height: 1.3;"><strong>${sentimentIcon} ${alert.title}</strong></a>
+          <div style="color: var(--text-light); font-size: 0.72rem; margin-top: 4px;">
+            📰 ${alert.source} · 📍 ${alert.area} · 🕒 ${alert.date || ''}
+          </div>
         </li>`;
       });
       html += `</ul>`;
+    } else {
+      html += `<p style="font-size: 0.85rem; color: var(--text-light);">${t.buzz_none || 'Nessuna notizia trovata di recente.'}</p>`;
     }
+
     panel.innerHTML = html;
     const mobilePanel = document.getElementById('mobile-buzz-panel');
     if (mobilePanel) mobilePanel.innerHTML = html;

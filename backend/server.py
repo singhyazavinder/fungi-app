@@ -170,7 +170,7 @@ def predict_point(req: PredictionRequest):
                 simulated_weather_agg,
                 terrain,
                 soil_ph,
-                community_buzz=buzz_data["buzz_score"],
+                community_buzz=buzz_data.get("regions", {}).get(found_region, {}).get("buzz_score", 0.1),
                 in_forest=in_forest,
                 lat=req.lat,
                 lon=req.lon,
@@ -278,7 +278,7 @@ def record_sighting(req: RecordRequest, background_tasks: BackgroundTasks):
                 lines = f.readlines()
             
             # Find the most recent "found" for this specific lat, lon, species, day, and user
-            today_str = datetime.datetime.utcnow().isoformat()[:10] # YYYY-MM-DD
+            today_str = datetime.datetime.now().isoformat()[:10] # YYYY-MM-DD (Italy time via TZ env var)
             target_index = -1
             
             # Search backwards to remove the most recent match
@@ -306,7 +306,7 @@ def record_sighting(req: RecordRequest, background_tasks: BackgroundTasks):
     else:
         with open(records_file, "a") as f:
             f.write(json.dumps({
-                "timestamp": datetime.datetime.utcnow().isoformat(),
+                "timestamp": datetime.datetime.now().isoformat(),
                 "lat": req.lat,
                 "lon": req.lon,
                 "species_id": req.species_id,
@@ -419,7 +419,7 @@ def predict_grid(region_id: str, species_id: str):
             local_weather,
             terrain,
             center_soil_ph,
-            community_buzz=buzz_data["buzz_score"],
+            community_buzz=buzz_data.get("regions", {}).get(region_id, {}).get("buzz_score", 0.1),
             in_forest=in_forest_flag,
             lat=lat,
             lon=lon,
