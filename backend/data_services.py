@@ -99,14 +99,7 @@ def aggregate_weather_data(
     """
     hourly = weather_data.get("hourly", {})
     if not hourly:
-        return {
-            "recent_rainfall_mm": 0.0,
-            "current_soil_temp_6cm": 15.0,
-            "current_soil_moisture": 0.25,
-            "current_humidity": 60.0,
-            "dew_point": 10.0,
-            "current_temp": 15.0,
-        }
+        return {}
 
     def get_val_at_offset(key, default=0.0):
         vals = hourly.get(key, [])

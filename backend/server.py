@@ -8,6 +8,7 @@ import requests
 import base64
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -41,6 +42,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 _base_grids = {}
 
 app = FastAPI(title="Fungi Prediction API")
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.middleware("http")
 async def enforce_vault_lock(request, call_next):
@@ -356,6 +358,8 @@ def predict_grid(region_id: str, species_id: str, response: Response):
     buzz_data = get_community_buzz()
 
     regional_weather = get_regional_weather(bounds)
+    if not regional_weather or not regional_weather[0].get("agg"):
+        raise HTTPException(status_code=503, detail="Weather API rate limited or unavailable.")
 
     # Query soil ONCE for the region center (as soil pH doesn't vary as dynamically as weather)
     center_soil_ph = get_soil_ph(center_lat, center_lon)
