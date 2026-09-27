@@ -1449,7 +1449,7 @@ window.flyToRecord = function(lat, lon, name, img, collector) {
 // Initial render
 renderSpeciesCards();
 
-let isFetchingGrids = false;
+
 const gridCache = {};
 
 function updateMapPredictions() {
@@ -1471,11 +1471,14 @@ function updateMapPredictions() {
   }
 }
 
+let pendingGridFetches = 0;
+
 async function loadRegionGrid() {
-  if (isFetchingGrids) return;
   if (!currentSpeciesId) return;
 
-  const cacheKey = `${currentSpeciesId}_${selectedRegion}`;
+  const reqSpecies = currentSpeciesId;
+  const reqRegion = selectedRegion;
+  const cacheKey = `${reqSpecies}_${reqRegion}`;
   
   // Check cache first
   if (gridCache[cacheKey]) {
@@ -1483,12 +1486,12 @@ async function loadRegionGrid() {
     return;
   }
 
-  isFetchingGrids = true;
+  pendingGridFetches++;
   document.getElementById('loading-overlay').style.display = 'flex';
 
   try {
     // Fetch only the selected region
-    const res = await fetch(`${API_URL}/predict/grid/${selectedRegion}/${currentSpeciesId}`);
+    const res = await fetch(`${API_URL}/predict/grid/${reqRegion}/${reqSpecies}`);
     const geojson = res.ok ? await res.json() : null;
 
     if (geojson && geojson.features) {
@@ -1500,13 +1503,19 @@ async function loadRegionGrid() {
       gridCache[cacheKey] = { type: 'FeatureCollection', features: [] };
     }
 
-    updateMapPredictions();
+    // Only update map if the user hasn't switched to another species/region
+    if (currentSpeciesId === reqSpecies && selectedRegion === reqRegion) {
+      updateMapPredictions();
+    }
 
   } catch (err) {
     console.error("Failed to load grids", err);
   } finally {
-    isFetchingGrids = false;
-    document.getElementById('loading-overlay').style.display = 'none';
+    pendingGridFetches--;
+    if (pendingGridFetches <= 0) {
+      pendingGridFetches = 0;
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
   }
 }
 
