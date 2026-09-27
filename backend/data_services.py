@@ -99,14 +99,7 @@ def aggregate_weather_data(
     """
     hourly = weather_data.get("hourly", {})
     if not hourly:
-        return {
-            "recent_rainfall_mm": 10.0,
-            "current_soil_temp_6cm": 15.0,
-            "current_soil_moisture": 0.25,
-            "current_humidity": 60.0,
-            "dew_point": 10.0,
-            "current_temp": 15.0,
-        }
+        return {}
 
     def get_val_at_offset(key, default=0.0):
         vals = hourly.get(key, [])
@@ -173,14 +166,7 @@ def interpolate_weather(lat: float, lon: float, corners: list) -> dict:
     """
     if len(corners) < 4:
         # Fallback to the first available if not all 4 corners succeeded
-        return corners[0]["agg"] if corners else {
-            "recent_rainfall_mm": 10.0,
-            "current_soil_temp_6cm": 15.0,
-            "current_soil_moisture": 0.25,
-            "current_humidity": 60.0,
-            "dew_point": 10.0,
-            "current_temp": 15.0,
-        }
+        return corners[0]["agg"] if corners else {}
 
     # Sort corners: BL, BR, TL, TR
     bl = min(corners, key=lambda c: (c["lat"], c["lon"]))
