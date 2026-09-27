@@ -1,5 +1,5 @@
 const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.match(/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/))
-  ? `http://${window.location.hostname}:8000` 
+  ? `http://${window.location.hostname}:8000`
   : 'https://fungi-app.onrender.com';
 
 let secretPassword = localStorage.getItem('fungi_secret');
@@ -7,7 +7,7 @@ let userName = localStorage.getItem('fungi_username') || "Anonymous";
 
 // Secure Vault Interceptor
 const originalFetch = window.fetch;
-window.fetch = function() {
+window.fetch = function () {
   let [resource, config] = arguments;
   if (typeof resource === 'string' && resource.startsWith(API_URL)) {
     config = config || {};
@@ -36,18 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-unlock').addEventListener('click', async () => {
     const pwd = document.getElementById('vault-password').value.trim();
     const uname = document.getElementById('vault-username').value.trim();
-    
+
     if (!uname) {
       document.getElementById('vault-error').innerText = "Please enter your name.";
       document.getElementById('vault-error').style.display = 'block';
       return;
     }
-    
+
     const oldPassword = secretPassword;
     secretPassword = pwd;
-    
+
     try {
-      const res = await fetch(`${API_URL}/buzz`); 
+      const res = await fetch(`${API_URL}/buzz`);
       if (res.status === 401) {
         secretPassword = oldPassword;
         document.getElementById('vault-error').style.display = 'block';
@@ -385,12 +385,12 @@ function updateMapStyleForTheme() {
 const toggleThemeHandler = () => {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
-  
+
   const icon = isDark ? '☀️' : '🌙';
   document.getElementById('theme-toggle').innerText = icon;
   const mobileBtn = document.getElementById('btn-theme-mobile');
   if (mobileBtn) mobileBtn.innerText = icon;
-  
+
   if (isDark) {
     localStorage.setItem('fungi_theme', 'dark');
   } else {
@@ -407,13 +407,13 @@ function setMapStyle(type) {
   currentMapType = type;
   if (type === 'streets') {
     updateMapStyleForTheme(); // Re-applies either dark or light street theme
-    
+
     // Update desktop buttons
     document.getElementById('btn-streets').style.background = 'var(--primary)';
     document.getElementById('btn-streets').style.color = 'white';
     document.getElementById('btn-satellite').style.background = 'transparent';
     document.getElementById('btn-satellite').style.color = 'var(--text-dark)';
-    
+
     // Update mobile buttons
     document.getElementById('btn-streets-mobile').style.background = 'var(--primary)';
     document.getElementById('btn-streets-mobile').style.color = 'white';
@@ -421,13 +421,13 @@ function setMapStyle(type) {
     document.getElementById('btn-satellite-mobile').style.color = 'var(--text-dark)';
   } else {
     map.setStyle(STYLE_SATELLITE);
-    
+
     // Update desktop buttons
     document.getElementById('btn-satellite').style.background = 'var(--primary)';
     document.getElementById('btn-satellite').style.color = 'white';
     document.getElementById('btn-streets').style.background = 'transparent';
     document.getElementById('btn-streets').style.color = 'var(--text-dark)';
-    
+
     // Update mobile buttons
     document.getElementById('btn-satellite-mobile').style.background = 'var(--primary)';
     document.getElementById('btn-satellite-mobile').style.color = 'white';
@@ -439,9 +439,9 @@ function setMapStyle(type) {
 
 
 const REGIONS = {
-  "asiago": {"lat_min": 45.80, "lat_max": 45.95, "lon_min": 11.40, "lon_max": 11.60},
-  "recoaro": {"lat_min": 45.65, "lat_max": 45.75, "lon_min": 11.15, "lon_max": 11.25},
-  "lavarone": {"lat_min": 45.90, "lat_max": 46.00, "lon_min": 11.20, "lon_max": 11.35},
+  "asiago": { "lat_min": 45.80, "lat_max": 45.95, "lon_min": 11.40, "lon_max": 11.60 },
+  "recoaro": { "lat_min": 45.65, "lat_max": 45.75, "lon_min": 11.15, "lon_max": 11.25 },
+  "lavarone": { "lat_min": 45.90, "lat_max": 46.00, "lon_min": 11.20, "lon_max": 11.35 },
 };
 
 function drawRegionBorders() {
@@ -500,7 +500,7 @@ function getClosestRegion(lat, lng) {
 function updateDynamicGrid() {
   if (map.getZoom() < 10 || !showDynamicGrid) {
     if (map.getSource('dynamic-grid')) {
-      map.getSource('dynamic-grid').setData({type: 'FeatureCollection', features: []});
+      map.getSource('dynamic-grid').setData({ type: 'FeatureCollection', features: [] });
     }
     return;
   }
@@ -520,7 +520,7 @@ function updateDynamicGrid() {
   const GRID_SIZE = 250;
   const meters_per_deg_lat = 111320;
   const latStep = GRID_SIZE / meters_per_deg_lat;
-  
+
   const avg_lat = (region.lat_min + region.lat_max) / 2;
   const lonStep = GRID_SIZE / (meters_per_deg_lat * Math.cos(avg_lat * Math.PI / 180));
 
@@ -530,10 +530,10 @@ function updateDynamicGrid() {
   const lonOrigin = region.lon_min - lonStep / 2;
 
   const features = [];
-  
+
   const latStartIdx = Math.floor((latMin - latOrigin) / latStep);
   const latStart = latOrigin + latStartIdx * latStep;
-  
+
   for (let lat = latStart; lat <= latMax + latStep; lat += latStep) {
     features.push({
       type: 'Feature',
@@ -575,20 +575,20 @@ map.on('zoomend', updateDynamicGrid);
 // Re-add grids and borders when style finishes loading
 map.on('styledata', () => {
   if (!map.getSource('predictions')) {
-      loadRegionGrid();
+    loadRegionGrid();
   }
   if (!map.getSource('region-borders') && map.isStyleLoaded()) {
-      drawRegionBorders();
+    drawRegionBorders();
   }
   if (!map.getSource('dynamic-grid') && map.isStyleLoaded()) {
-      updateDynamicGrid();
+    updateDynamicGrid();
   }
 });
 
 // Handle Map Clicks
 map.on('click', async (e) => {
   let { lng, lat } = e.lngLat;
-  
+
   const features = map.queryRenderedFeatures(e.point, { layers: ['predictions-fill'] });
   let clickedScore = null;
 
@@ -608,27 +608,27 @@ map.on('click', async (e) => {
     // 250m grid math for offline or transparent (0 score) areas
     const GRID_SIZE = 250;
     const meters_per_deg_lat = 111320;
-    
+
     const region = getClosestRegion(lat, lng);
     const avg_lat = (region.lat_min + region.lat_max) / 2;
     const lat_step = GRID_SIZE / meters_per_deg_lat;
     const lon_step = GRID_SIZE / (meters_per_deg_lat * Math.cos(avg_lat * Math.PI / 180));
-    
+
     const latOrigin = region.lat_min - lat_step / 2;
     const lonOrigin = region.lon_min - lon_step / 2;
-    
+
     const lat_idx = Math.floor((lat - latOrigin) / lat_step);
     const lon_idx = Math.floor((lng - lonOrigin) / lon_step);
-    
+
     lat = latOrigin + (lat_idx + 0.5) * lat_step;
     lng = lonOrigin + (lon_idx + 0.5) * lon_step;
-    
+
     // Draw the borderline for the clicked grid square
     const minLat = latOrigin + lat_idx * lat_step;
     const maxLat = latOrigin + (lat_idx + 1) * lat_step;
     const minLng = lonOrigin + lon_idx * lon_step;
     const maxLng = lonOrigin + (lon_idx + 1) * lon_step;
-    
+
     const cellPolygon = {
       type: 'FeatureCollection',
       features: [{
@@ -643,7 +643,7 @@ map.on('click', async (e) => {
         }
       }]
     };
-    
+
     if (map.getSource('tapped-grid')) {
       map.getSource('tapped-grid').setData(cellPolygon);
     } else {
@@ -670,15 +670,15 @@ map.on('click', async (e) => {
     currentPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '380px' })
       .setLngLat([lng, lat])
       .addTo(map);
-      
+
     if (marker) marker.remove();
     marker = new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
-    
-    renderPrediction({ 
-      score: 0.0, 
-      message: "Fuori dalle regioni supportate. Aggiungi il tuo ritrovamento locale!", 
-      lat: lat, 
-      lon: lng 
+
+    renderPrediction({
+      score: 0.0,
+      message: "Fuori dalle regioni supportate. Aggiungi il tuo ritrovamento locale!",
+      lat: lat,
+      lon: lng
     });
   } else {
     await fetchPrediction(lat, lng, clickedScore);
@@ -702,7 +702,7 @@ document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').f
       b.style.color = '';
       b.style.borderColor = '';
     });
-    
+
     const lat = parseFloat(btn.dataset.lat);
     const lon = parseFloat(btn.dataset.lon);
 
@@ -712,18 +712,18 @@ document.querySelectorAll('.btn-loc:not(#btn-my-loc):not(#btn-my-loc-mobile)').f
       b.style.color = 'white';
       b.style.borderColor = 'var(--primary)';
     });
-    
+
     // Update the selected region based on the button text
     selectedRegion = btn.innerText.trim().toLowerCase();
-    
+
     map.flyTo({ center: [lon, lat], zoom: 12 });
-    
+
     // Auto-close mobile drawer when location is clicked
     const drawer = document.getElementById('drawer-wrapper');
     if (drawer && drawer.classList.contains('drawer-open')) {
       drawer.classList.remove('drawer-open');
     }
-    
+
     // If a mushroom is already selected, load its grid for the new region immediately
     if (currentSpeciesId) {
       loadRegionGrid();
@@ -767,9 +767,9 @@ if (btnCloseDrawer) {
 }
 
 const SPECIES_DATA = [
-  { 
-    id: 'boletus_edulis', sci: 'Boletus Edulis', img: '/images/mushrooms/boletus_edulis.webp', 
-    name: {"it":"Porcino","en":"Penny Bun","hi":"पेनी बन (Porcino)"},
+  {
+    id: 'boletus_edulis', sci: 'Boletus Edulis', img: '/images/mushrooms/boletus_edulis.webp',
+    name: { "it": "Porcino", "en": "Penny Bun", "hi": "पेनी बन (Porcino)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -800,9 +800,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'boletus_aereus', sci: 'Boletus Aereus', img: '/images/mushrooms/boletus_aereus.webp', 
-    name: {"it":"Porcino nero","en":"Dark Cep","hi":"डार्क सेप (Porcino nero)"},
+  {
+    id: 'boletus_aereus', sci: 'Boletus Aereus', img: '/images/mushrooms/boletus_aereus.webp',
+    name: { "it": "Porcino nero", "en": "Dark Cep", "hi": "डार्क सेप (Porcino nero)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -833,9 +833,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'boletus_aestivalis', sci: 'Boletus Aestivalis', img: '/images/mushrooms/boletus_aestivalis.webp', 
-    name: {"it":"Porcino estivo","en":"Summer Cep","hi":"समर सेप (Porcino estivo)"},
+  {
+    id: 'boletus_aestivalis', sci: 'Boletus Aestivalis', img: '/images/mushrooms/boletus_aestivalis.webp',
+    name: { "it": "Porcino estivo", "en": "Summer Cep", "hi": "समर सेप (Porcino estivo)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -866,9 +866,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'boletus_pinophilus', sci: 'Boletus Pinophilus', img: '/images/mushrooms/boletus_pinophilus.webp', 
-    name: {"it":"Porcino rosso","en":"Pine Bolete","hi":"पाइन बोलेट (Porcino rosso)"},
+  {
+    id: 'boletus_pinophilus', sci: 'Boletus Pinophilus', img: '/images/mushrooms/boletus_pinophilus.webp',
+    name: { "it": "Porcino rosso", "en": "Pine Bolete", "hi": "पाइन बोलेट (Porcino rosso)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -899,9 +899,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'cantharellus_cibarius', sci: 'Cantharellus cibarius', img: '/images/mushrooms/cantharellus_cibarius.webp', 
-    name: {"it":"Finferlo / Gallinaccio","en":"Chanterelle","hi":"चैंटरेल (Finferlo)"},
+  {
+    id: 'cantharellus_cibarius', sci: 'Cantharellus cibarius', img: '/images/mushrooms/cantharellus_cibarius.webp',
+    name: { "it": "Finferlo / Gallinaccio", "en": "Chanterelle", "hi": "चैंटरेल (Finferlo)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -932,9 +932,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'craterellus_tubaeformis', sci: 'Craterellus Tubaeformis', img: '/images/mushrooms/craterellus_tubaeformis.webp', 
-    name: {"it":"Finferla","en":"Trumpet Chanterelle","hi":"ट्रम्पेट चैंटरेल (Finferla)"},
+  {
+    id: 'craterellus_tubaeformis', sci: 'Craterellus Tubaeformis', img: '/images/mushrooms/craterellus_tubaeformis.webp',
+    name: { "it": "Finferla", "en": "Trumpet Chanterelle", "hi": "ट्रम्पेट चैंटरेल (Finferla)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -965,9 +965,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'craterellus_cornucopioides', sci: 'Craterellus Cornucopioides', img: '/images/mushrooms/craterellus_cornucopioides.webp', 
-    name: {"it":"Trombetta dei morti","en":"Horn of Plenty","hi":"हॉर्न ऑफ प्लेंटी (Trombetta dei morti)"},
+  {
+    id: 'craterellus_cornucopioides', sci: 'Craterellus Cornucopioides', img: '/images/mushrooms/craterellus_cornucopioides.webp',
+    name: { "it": "Trombetta dei morti", "en": "Horn of Plenty", "hi": "हॉर्न ऑफ प्लेंटी (Trombetta dei morti)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -998,9 +998,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'morchella_esculenta', sci: 'Morchella Esculenta', img: '/images/mushrooms/morchella_esculenta.webp', 
-    name: {"it":"Spugnola","en":"Morel","hi":"मोरेल (Spugnola)"},
+  {
+    id: 'morchella_esculenta', sci: 'Morchella Esculenta', img: '/images/mushrooms/morchella_esculenta.webp',
+    name: { "it": "Spugnola", "en": "Morel", "hi": "मोरेल (Spugnola)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -1031,9 +1031,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'morchella_conica', sci: 'Morchella Conica', img: '/images/mushrooms/morchella_conica.webp', 
-    name: {"it":"Spugnola conica","en":"Black Morel","hi":"ब्लैक मोरेल (Spugnola conica)"},
+  {
+    id: 'morchella_conica', sci: 'Morchella Conica', img: '/images/mushrooms/morchella_conica.webp',
+    name: { "it": "Spugnola conica", "en": "Black Morel", "hi": "ब्लैक मोरेल (Spugnola conica)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -1064,9 +1064,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'amanita_caesarea', sci: 'Amanita Caesarea', img: '/images/mushrooms/amanita_caesarea.webp', 
-    name: {"it":"Ovolo buono","en":"Caesar's Mushroom","hi":"सीज़र मशरूम (Ovolo buono)"},
+  {
+    id: 'amanita_caesarea', sci: 'Amanita Caesarea', img: '/images/mushrooms/amanita_caesarea.webp',
+    name: { "it": "Ovolo buono", "en": "Caesar's Mushroom", "hi": "सीज़र मशरूम (Ovolo buono)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -1097,9 +1097,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'russula_cyanoxantha', sci: 'Russula Cyanoxantha', img: '/images/mushrooms/russula_cyanoxantha.webp', 
-    name: {"it":"Colombina maggiore","en":"Charcoal Burner","hi":"चारकोल बर्नर (Colombina)"},
+  {
+    id: 'russula_cyanoxantha', sci: 'Russula Cyanoxantha', img: '/images/mushrooms/russula_cyanoxantha.webp',
+    name: { "it": "Colombina maggiore", "en": "Charcoal Burner", "hi": "चारकोल बर्नर (Colombina)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -1130,9 +1130,9 @@ const SPECIES_DATA = [
     </ul>`
     }
   },
-  { 
-    id: 'macrolepiota_procera', sci: 'Macrolepiota procera', img: '/images/mushrooms/macrolepiota_procera.webp', 
-    name: {"it":"Mazza di tamburo","en":"Parasol Mushroom","hi":"पैरासोल मशरूम (Mazza)"},
+  {
+    id: 'macrolepiota_procera', sci: 'Macrolepiota procera', img: '/images/mushrooms/macrolepiota_procera.webp',
+    name: { "it": "Mazza di tamburo", "en": "Parasol Mushroom", "hi": "पैरासोल मशरूम (Mazza)" },
     desc: {
       it: `<strong>Identificazione:</strong><br>
     <ul>
@@ -1175,14 +1175,14 @@ function renderSpeciesCards() {
   SPECIES_DATA.forEach(sp => {
     const card = document.createElement('div');
     card.className = `species-card ${sp.id === currentSpeciesId ? 'active' : ''}`;
-    
+
     const localizedName = sp.name[currentLang] || sp.name['en'];
     const localizedDesc = sp.desc[currentLang] || sp.desc['en'];
-    
+
     card.onclick = () => {
       currentSpeciesId = sp.id;
       renderSpeciesCards();
-      
+
       // Hide species list, show details panel and legend
       document.getElementById('panel-species').style.display = 'none';
       document.getElementById('panel-details').style.display = 'flex';
@@ -1190,7 +1190,7 @@ function renderSpeciesCards() {
 
       // For Mobile: trigger the full screen map layout
       document.getElementById('app').classList.add('mobile-map-active');
-      setTimeout(() => { 
+      setTimeout(() => {
         if (map) {
           map.resize();
           const regionCoords = {
@@ -1217,7 +1217,7 @@ function renderSpeciesCards() {
         const t = i18n[currentLang];
         predPanel.innerHTML = `<p>${t.click_map}</p>`;
       }
-        loadRegionGrid();
+      loadRegionGrid();
     };
 
     card.innerHTML = `
@@ -1277,10 +1277,10 @@ document.getElementById('btn-back').addEventListener('click', () => {
   document.getElementById('panel-records').style.display = 'none';
   document.getElementById('panel-species').style.display = 'flex';
   document.getElementById('map-legend').style.display = 'none';
-  
+
   currentSpeciesId = null;
   renderSpeciesCards();
-  
+
   if (map.getSource('predictions')) {
     map.getSource('predictions').setData({ type: 'FeatureCollection', features: [] });
   }
@@ -1295,32 +1295,32 @@ document.getElementById('btn-records').addEventListener('click', async () => {
   document.getElementById('panel-species').style.display = 'none';
   document.getElementById('panel-details').style.display = 'none';
   document.getElementById('panel-records').style.display = 'flex';
-  
+
   const listEl = document.getElementById('records-list');
   listEl.innerHTML = '<p>Caricamento...</p>';
-  
+
   try {
     const res = await fetch(`${API_URL}/records/all`);
     if (!res.ok) throw new Error("Failed to load");
     const records = await res.json();
-    
+
     // Filter only valid founds
     const foundRecords = records.filter(r => r.action === 'found');
-    
+
     if (foundRecords.length === 0) {
       listEl.innerHTML = '<p>Nessun ritrovamento registrato.</p>';
       return;
     }
-    
+
     // Sort by newest first
     foundRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
+
     listEl.innerHTML = '';
     foundRecords.forEach(rec => {
       const sp = SPECIES_DATA.find(s => s.id === rec.species_id);
       const spName = sp ? (sp.name[currentLang] || sp.name['en']) : rec.species_id;
       const dateStr = new Date(rec.timestamp).toLocaleString(currentLang);
-      
+
       const card = document.createElement('div');
       card.style.padding = '10px';
       card.style.background = 'var(--surface)';
@@ -1329,9 +1329,9 @@ document.getElementById('btn-records').addEventListener('click', async () => {
       card.style.display = 'flex';
       card.style.alignItems = 'center';
       card.style.gap = '10px';
-      
+
       const collector = (rec.username || 'Anonymous').replace(/'/g, "\\'");
-      
+
       if (sp) {
         card.innerHTML = `
           <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${spName.replace(/'/g, "\\'")}', '${sp.img}', '${collector}')" style="display: flex; flex: 1; align-items: center; gap: 10px; cursor: pointer;">
@@ -1354,7 +1354,7 @@ document.getElementById('btn-records').addEventListener('click', async () => {
           <button onclick="deleteRecord('${rec.timestamp}', '${collector}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
         `;
       }
-      
+
       listEl.appendChild(card);
     });
   } catch (err) {
@@ -1363,7 +1363,7 @@ document.getElementById('btn-records').addEventListener('click', async () => {
   }
 });
 
-window.deleteRecord = function(timestamp, username) {
+window.deleteRecord = function (timestamp, username) {
   const toast = document.getElementById('delete-toast');
   const msg = document.getElementById('toast-msg');
   const btnYes = document.getElementById('toast-yes');
@@ -1371,13 +1371,13 @@ window.deleteRecord = function(timestamp, username) {
   const btnClose = document.getElementById('toast-close');
 
   const t = i18n[currentLang] || i18n['en'];
-  
+
   // Set translated texts
   document.querySelector('#delete-toast h3').innerText = t.toast_title;
   msg.innerText = t.toast_msg.replace('{user}', username);
   btnNo.innerText = t.toast_no;
   btnYes.innerText = t.toast_yes;
-  
+
   toast.style.display = 'flex';
 
   const cleanup = () => {
@@ -1407,7 +1407,7 @@ window.deleteRecord = function(timestamp, username) {
   };
 };
 
-window.flyToRecord = function(lat, lon, name, img, collector) {
+window.flyToRecord = function (lat, lon, name, img, collector) {
   // Close mobile drawer if it's open so the user can see the map
   const drawer = document.getElementById('drawer-wrapper');
   if (drawer && drawer.classList.contains('drawer-open')) {
@@ -1421,16 +1421,8 @@ window.flyToRecord = function(lat, lon, name, img, collector) {
 
   // Place marker and popup
   if (marker) marker.remove();
-  
-  const markerEl = document.createElement('div');
-  const imgHtml = img ? `<img src="${img}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">` : `<span style="font-size: 16px;">🍄</span>`;
-  markerEl.innerHTML = `<div style="display:flex; align-items:center; background:var(--surface); border:2px solid var(--primary); border-radius:20px; padding:2px 8px 2px 2px; box-shadow:0 2px 5px rgba(0,0,0,0.3); gap:5px; cursor:pointer;">
-    ${imgHtml}
-    <span style="font-size:0.75rem; font-weight:bold; color:var(--text);">${collector}</span>
-  </div>`;
-  
-  marker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' }).setLngLat([lon, lat]).addTo(map);
-  
+  marker = new maplibregl.Marker({ color: '#ffb300' }).setLngLat([lon, lat]).addTo(map);
+
   if (currentPopup) currentPopup.remove();
 
   let popupHTML = '';
@@ -1439,7 +1431,7 @@ window.flyToRecord = function(lat, lon, name, img, collector) {
       <div style="display: flex; align-items: center; gap: 10px; padding: 5px; min-width: 150px;">
         <img src="${img}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
         <div>
-          <div style="font-weight:bold; font-size:1rem; color: var(--text);">${name}</div>
+          <div style="font-weight:bold; font-size:1rem; color: var(--text); white-space: nowrap;">${name}</div>
           <div style="font-size:0.8rem; color: var(--primary);">👤 ${collector}</div>
         </div>
       </div>
@@ -1447,7 +1439,7 @@ window.flyToRecord = function(lat, lon, name, img, collector) {
   } else {
     popupHTML = `
       <div style="padding: 5px; min-width: 150px;">
-        <div style="font-weight:bold; font-size:1rem; color: var(--text);">${name}</div>
+        <div style="font-weight:bold; font-size:1rem; color: var(--text); white-space: nowrap;">${name}</div>
         <div style="font-size:0.8rem; color: var(--primary);">👤 ${collector}</div>
       </div>
     `;
@@ -1476,7 +1468,7 @@ function updateMapPredictions() {
     type: 'FeatureCollection',
     features: aggregatedFeatures
   };
-  
+
   if (map.getSource('predictions')) {
     map.getSource('predictions').setData(combinedGeoJSON);
   } else {
@@ -1492,7 +1484,7 @@ async function loadRegionGrid() {
   const reqSpecies = currentSpeciesId;
   const reqRegion = selectedRegion;
   const cacheKey = `${reqSpecies}_${reqRegion}`;
-  
+
   // Check cache first
   if (gridCache[cacheKey]) {
     updateMapPredictions();
@@ -1613,18 +1605,18 @@ function renderPrediction(data) {
         <h3 style="font-size: 0.9rem; margin-top: 15px; margin-bottom: 5px;">${t.found}</h3>
         <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-top: 5px; scrollbar-width: none; -ms-overflow-style: none;">
           ${SPECIES_DATA.map(sp => {
-            const spName = sp.name[currentLang] || sp.name['en'];
-            return `
+      const spName = sp.name[currentLang] || sp.name['en'];
+      return `
               <div data-species="${sp.id}" style="min-width: 65px; max-width: 65px; text-align: center; cursor: pointer; user-select: none;" 
                    onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
                 <div style="position: relative; display: inline-block;">
                   <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
-                  <div id="swipe-tick-${sp.id}" style="position: absolute; bottom: -2px; right: -2px; background: #4CAF50; color: white; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; pointer-events: none; border: 2px solid white; z-index: 10;">✓</div>
+                  <div id="swipe-tick-${sp.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,0.8); opacity: 0; transition: 0.2s; pointer-events: none;">✓</div>
                 </div>
                 <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
               </div>
             `;
-          }).join('')}
+    }).join('')}
           <div style="min-width: 80px; max-width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 5px;">
             <input type="text" id="custom-mushroom-input" placeholder="Other..." maxlength="30" style="width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; text-align: center; margin-bottom: 5px; outline: none; box-sizing: border-box;" 
                    onkeypress="if(event.key === 'Enter') { handleCustomMushroom(this.value, ${data.lat}, ${data.lon}); this.value = ''; }">
@@ -1740,18 +1732,18 @@ function renderPrediction(data) {
     <h3 style="font-size: 0.9rem; margin-top: 15px; margin-bottom: 5px;">${t.found}</h3>
     <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-top: 5px; scrollbar-width: none; -ms-overflow-style: none;">
       ${SPECIES_DATA.map(sp => {
-        const spName = sp.name[currentLang] || sp.name['en'];
-        return `
+    const spName = sp.name[currentLang] || sp.name['en'];
+    return `
           <div data-species="${sp.id}" style="min-width: 65px; max-width: 65px; text-align: center; cursor: pointer; user-select: none;" 
                onclick="handleSwipeRecord(this, ${data.lat}, ${data.lon}, '${sp.id}')">
             <div style="position: relative; display: inline-block;">
               <img src="${sp.img}" id="swipe-img-${sp.id}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); pointer-events: none;">
-              <div id="swipe-tick-${sp.id}" style="position: absolute; bottom: -2px; right: -2px; background: #4CAF50; color: white; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; pointer-events: none; border: 2px solid white; z-index: 10;">✓</div>
+              <div id="swipe-tick-${sp.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,0.8); opacity: 0; transition: 0.2s; pointer-events: none;">✓</div>
             </div>
             <div style="font-size: 11px; line-height: 1.2; margin-top: 5px; font-weight: 600; white-space: normal; word-wrap: break-word;">${spName}</div>
           </div>
         `;
-      }).join('')}
+  }).join('')}
       
       <!-- Custom Mushroom Input -->
       <div style="min-width: 80px; max-width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 5px;">
@@ -1826,13 +1818,13 @@ async function fetchBuzz() {
     const res = await fetch(`${API_URL}/buzz`);
     const data = await res.json();
     const panel = document.getElementById('buzz-panel');
-    
+
     // Translate level
     let level = data.buzz.level;
     if (level === 'Calmo') level = t.buzz_calm;
     if (level === 'Moderato') level = t.buzz_mod;
     if (level === 'Frenetico') level = t.buzz_high;
-    
+
     // Translate message
     let msg = data.buzz.message;
     if (msg.includes('Nessuna notizia')) msg = t.buzz_none;
@@ -1881,20 +1873,20 @@ function applyTranslations() {
 
   const lblSpecies = document.getElementById('lbl-species');
   if (lblSpecies) lblSpecies.innerText = t.lbl_species;
-  
+
   const btnBackDesktop = document.getElementById('btn-back');
   if (btnBackDesktop) btnBackDesktop.innerHTML = t.btn_back_desktop;
 
   const btnBackMobile = document.getElementById('btn-mobile-back');
   if (btnBackMobile) btnBackMobile.innerText = t.btn_back_mobile;
-  
+
   // Update location headers
   const lblLocations = document.getElementById('lbl-locations');
   if (lblLocations) lblLocations.innerText = t.lbl_locations;
-  
+
   const lblBuzz = document.getElementById('lbl-buzz');
   if (lblBuzz) lblBuzz.innerText = t.community_buzz;
-  
+
   const locHeaders = document.querySelectorAll('h3');
   locHeaders.forEach(h => {
     if (h.innerText.includes('Localit') || h.innerText.includes('Location') || h.innerText.includes('स्थान')) h.innerText = t.lbl_locations;
@@ -1903,17 +1895,17 @@ function applyTranslations() {
 
   const btnMyLoc = document.getElementById('btn-my-loc');
   if (btnMyLoc) btnMyLoc.innerText = t.btn_my_loc;
-  
+
   const mobileLocBtn = document.getElementById('btn-my-loc-mobile');
   if (mobileLocBtn) mobileLocBtn.innerText = t.btn_my_loc;
-  
+
   const lblPrediction = document.getElementById('lbl-prediction');
   if (lblPrediction) lblPrediction.innerText = t.lbl_prediction;
-  
+
   // Map buttons
   const setBtnText = (id, text) => {
     const b = document.getElementById(id);
-    if(b) b.innerText = text;
+    if (b) b.innerText = text;
   };
   setBtnText('btn-streets', t.btn_streets);
   setBtnText('btn-satellite', t.btn_satellite);
@@ -1922,24 +1914,24 @@ function applyTranslations() {
 
   // Vault UI
   const vTitle = document.querySelector('#vault-lock h1');
-  if(vTitle) vTitle.innerText = t.vault_title;
+  if (vTitle) vTitle.innerText = t.vault_title;
   const vSub = document.querySelector('#vault-lock p');
-  if(vSub) vSub.innerText = t.vault_subtitle;
+  if (vSub) vSub.innerText = t.vault_subtitle;
   const vBtn = document.getElementById('btn-unlock');
-  if(vBtn) vBtn.innerText = t.vault_btn;
+  if (vBtn) vBtn.innerText = t.vault_btn;
   const vErr = document.getElementById('vault-error');
-  if(vErr) vErr.innerText = t.vault_err;
-  
+  if (vErr) vErr.innerText = t.vault_err;
+
   const lblLegend = document.getElementById('lbl-legend');
   if (lblLegend) lblLegend.innerText = t.lbl_legend;
-  
+
   const lblLegendMobile = document.getElementById('lbl-legend-mobile');
   if (lblLegendMobile) lblLegendMobile.innerText = t.lbl_growth;
-  
+
   let langText = 'IT 🇮🇹';
   if (currentLang === 'en') langText = 'EN 🇬🇧';
   if (currentLang === 'hi') langText = 'HI 🇮🇳';
-  
+
   document.getElementById('lang-toggle').innerText = langText;
   const mobileLangBtn = document.getElementById('btn-lang-mobile');
   if (mobileLangBtn) mobileLangBtn.innerText = langText;
@@ -1954,7 +1946,7 @@ function applyTranslations() {
     const lngLat = marker.getLngLat();
     fetchPrediction(lngLat.lat, lngLat.lng);
   }
-  
+
   fetchBuzz();
 }
 
@@ -1992,14 +1984,14 @@ function updateOnlineStatus() {
   }
 }
 
-window.handleCustomMushroom = function(val, lat, lon) {
+window.handleCustomMushroom = function (val, lat, lon) {
   val = val.trim();
   if (!val) return;
   // Format as a custom species_id
   const species_id = val.toLowerCase().replace(/\\s+/g, '_');
-  
+
   window.recordSighting(lat, lon, species_id, 'found');
-  
+
   // Show quick visual feedback
   const input = document.getElementById('custom-mushroom-input');
   if (input && input.nextElementSibling) {
@@ -2014,7 +2006,7 @@ window.handleCustomMushroom = function(val, lat, lon) {
   }
 };
 
-window.recordSighting = async function(lat, lon, species_id, action) {
+window.recordSighting = async function (lat, lon, species_id, action) {
   const record = { lat, lon, species_id, action, username: userName, timestamp: new Date().toISOString() };
   if (!navigator.onLine) {
     const offlineRecords = JSON.parse(localStorage.getItem('fungi_offline_records') || '[]');
@@ -2022,7 +2014,7 @@ window.recordSighting = async function(lat, lon, species_id, action) {
     localStorage.setItem('fungi_offline_records', JSON.stringify(offlineRecords));
     return;
   }
-  
+
   try {
     await fetch(`${API_URL}/record`, {
       method: 'POST',
@@ -2037,7 +2029,7 @@ window.recordSighting = async function(lat, lon, species_id, action) {
   }
 };
 
-window.handleSwipeRecord = function(el, lat, lon, species_id) {
+window.handleSwipeRecord = function (el, lat, lon, species_id) {
   const now = new Date().getTime();
   const lastClick = parseInt(el.dataset.lastClick || "0");
   el.dataset.lastClick = now;
@@ -2070,10 +2062,10 @@ window.handleSwipeRecord = function(el, lat, lon, species_id) {
 };
 
 
-window.syncOfflineRecords = async function() {
+window.syncOfflineRecords = async function () {
   const offlineRecords = JSON.parse(localStorage.getItem('fungi_offline_records') || '[]');
   if (offlineRecords.length === 0) return;
-  
+
   let successCount = 0;
   for (const record of offlineRecords) {
     try {
@@ -2087,7 +2079,7 @@ window.syncOfflineRecords = async function() {
       console.error("Failed to sync record", err);
     }
   }
-  
+
   if (successCount === offlineRecords.length) {
     localStorage.removeItem('fungi_offline_records');
     console.log(`Synced ${successCount} offline records.`);
