@@ -1306,19 +1306,21 @@ document.getElementById('btn-records').addEventListener('click', async () => {
       
       const card = document.createElement('div');
       card.style.padding = '10px';
-      card.style.background = 'white';
+      card.style.background = 'var(--surface)';
       card.style.borderRadius = '8px';
       card.style.border = '1px solid var(--border)';
       card.style.display = 'flex';
       card.style.alignItems = 'center';
       card.style.gap = '10px';
       
+      const collector = (rec.username || 'Anonymous').replace(/'/g, "\\'");
+      
       if (sp) {
         card.innerHTML = `
-          <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${spName.replace(/'/g, "\\'")}')" style="display: flex; flex: 1; align-items: center; gap: 10px; cursor: pointer;">
+          <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${spName.replace(/'/g, "\\'")}', '${sp.img}', '${collector}')" style="display: flex; flex: 1; align-items: center; gap: 10px; cursor: pointer;">
             <img src="${sp.img}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
             <div style="flex: 1;">
-              <div style="font-weight: 600; font-size: 0.95rem;">${spName}</div>
+              <div style="font-weight: 600; font-size: 0.95rem; color: var(--text);">${spName}</div>
               <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
               <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
             </div>
@@ -1327,8 +1329,8 @@ document.getElementById('btn-records').addEventListener('click', async () => {
         `;
       } else {
         card.innerHTML = `
-          <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${rec.species_id.replace(/'/g, "\\'")}')" style="flex: 1; cursor: pointer;">
-            <div style="font-weight: 600; font-size: 0.95rem;">${rec.species_id}</div>
+          <div onclick="flyToRecord(${rec.lat}, ${rec.lon}, '${rec.species_id.replace(/'/g, "\\'")}', '', '${collector}')" style="flex: 1; cursor: pointer;">
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--text);">${rec.species_id}</div>
             <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
             <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
           </div>
@@ -1360,7 +1362,7 @@ window.deleteRecord = async function(timestamp) {
   }
 };
 
-window.flyToRecord = function(lat, lon, name) {
+window.flyToRecord = function(lat, lon, name, img, collector) {
   // Close mobile drawer if it's open so the user can see the map
   const drawer = document.getElementById('drawer-wrapper');
   if (drawer && drawer.classList.contains('drawer-open')) {
@@ -1377,9 +1379,30 @@ window.flyToRecord = function(lat, lon, name) {
   marker = new maplibregl.Marker({ color: '#ffb300' }).setLngLat([lon, lat]).addTo(map);
   
   if (currentPopup) currentPopup.remove();
+
+  let popupHTML = '';
+  if (img) {
+    popupHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; padding: 5px; min-width: 150px;">
+        <img src="${img}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+        <div>
+          <div style="font-weight:bold; font-size:1rem; color: var(--text);">${name}</div>
+          <div style="font-size:0.8rem; color: var(--primary);">👤 ${collector}</div>
+        </div>
+      </div>
+    `;
+  } else {
+    popupHTML = `
+      <div style="padding: 5px; min-width: 150px;">
+        <div style="font-weight:bold; font-size:1rem; color: var(--text);">${name}</div>
+        <div style="font-size:0.8rem; color: var(--primary);">👤 ${collector}</div>
+      </div>
+    `;
+  }
+
   currentPopup = new maplibregl.Popup({ closeOnClick: false, offset: 25 })
     .setLngLat([lon, lat])
-    .setHTML(`<div style="padding:5px 10px; font-weight:bold; font-size:1rem; text-align:center;">🍄 ${name}</div>`)
+    .setHTML(popupHTML)
     .addTo(map);
 };
 
