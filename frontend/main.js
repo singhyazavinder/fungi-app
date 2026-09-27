@@ -1321,18 +1321,38 @@ document.getElementById('btn-records').addEventListener('click', async () => {
             <div style="font-size: 0.75rem; color: var(--text-light);">${dateStr}</div>
             <div style="font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-top: 2px;">👤 ${rec.username || 'Anonymous'}</div>
           </div>
+          <button onclick="deleteRecord('${rec.timestamp}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
         `;
       } else {
-        card.innerHTML = `<div>${rec.species_id} <br> ${dateStr} <br> 👤 ${rec.username || 'Anonymous'}</div>`;
+        card.innerHTML = `
+          <div style="flex: 1;">${rec.species_id} <br> ${dateStr} <br> 👤 ${rec.username || 'Anonymous'}</div>
+          <button onclick="deleteRecord('${rec.timestamp}')" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; color: #ef4444;">🗑️</button>
+        `;
       }
       
       listEl.appendChild(card);
     });
-    
   } catch (err) {
-    listEl.innerHTML = '<p style="color: red;">Errore nel caricamento.</p>';
+    console.error(err);
+    listEl.innerHTML = '<p>Errore di connessione.</p>';
   }
 });
+
+window.deleteRecord = async function(timestamp) {
+  if (!confirm('Sei sicuro di voler eliminare questo record?')) return;
+  try {
+    const response = await fetch(`${API_URL}/record`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat: 0, lon: 0, species_id: 'unknown', action: 'delete', timestamp: timestamp })
+    });
+    if (response.ok) {
+      document.getElementById('btn-records').click(); // Reload the records panel
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 // Initial render
 renderSpeciesCards();

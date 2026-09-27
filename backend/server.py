@@ -20,6 +20,7 @@ class RecordRequest(BaseModel):
     species_id: str
     action: str
     username: str = "Anonymous"
+    timestamp: str = None
 
 from data_services import (
     aggregate_weather_data,
@@ -214,7 +215,31 @@ def record_sighting(req: RecordRequest, background_tasks: BackgroundTasks):
     os.makedirs("data", exist_ok=True)
     records_file = "data/user_records.jsonl"
     
-    if req.action == "undo_found":
+    if req.action == "delete":
+        if os.path.exists(records_file):
+            lines = []
+            with open(records_file, "r") as f:
+                lines = f.readlines()
+            
+            target_index = -1
+            for i in range(len(lines) - 1, -1, -1):
+                try:
+                    record = json.loads(lines[i])
+                    if (record.get("timestamp") == req.timestamp):
+                        target_index = i
+                        break
+                except:
+                    pass
+            
+            if target_index != -1:
+                del lines[target_index]
+                with open(records_file, "w") as f:
+                    f.writelines(lines)
+        
+        background_tasks.add_task(sync_to_github)
+        return {"status": "success", "message": "Record deleted"}
+        
+    elif req.action == "undo_found":
         if os.path.exists(records_file):
             lines = []
             with open(records_file, "r") as f:
