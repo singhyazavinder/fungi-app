@@ -59,11 +59,9 @@ def get_weather_forecast(lat: float, lon: float, elevation: float) -> Dict[str, 
             "precipitation",
             "soil_temperature_0cm",
             "soil_temperature_6cm",
-            "soil_temperature_18cm",
             "soil_moisture_0_to_1cm",
             "soil_moisture_1_to_3cm",
             "soil_moisture_3_to_9cm",
-            "soil_moisture_9_to_27cm",
             "wind_speed_10m",
             "cloud_cover",
             "snow_depth",
@@ -127,6 +125,25 @@ def aggregate_weather_data(
     start_index = max(0, target_index - (7 * 24))
     recent_rain = sum(v for v in rain_vals[start_index:target_index] if v is not None)
 
+    # --- Advanced Environmental Modifiers ---
+    wind_vals = hourly.get("wind_speed_10m", [])
+    cloud_vals = hourly.get("cloud_cover", [])
+    surface_temp_vals = hourly.get("soil_temperature_0cm", [])
+
+    def avg_window(vals, hours_back):
+        """Average of values over a window ending at the target time."""
+        end_idx = base_index + (day_offset * 24)
+        start_idx = max(0, end_idx - hours_back)
+        window = [v for v in vals[start_idx:end_idx] if v is not None]
+        return sum(window) / len(window) if window else 0.0
+
+    def min_window(vals, hours_back):
+        """Minimum value over a window ending at the target time."""
+        end_idx = base_index + (day_offset * 24)
+        start_idx = max(0, end_idx - hours_back)
+        window = [v for v in vals[start_idx:end_idx] if v is not None]
+        return min(window) if window else 15.0
+
     return {
         "recent_rainfall_mm": recent_rain,
         "current_soil_temp_6cm": get_val_at_offset("soil_temperature_6cm", 15.0),
@@ -134,6 +151,17 @@ def aggregate_weather_data(
         "current_humidity": get_val_at_offset("relative_humidity_2m", 60.0),
         "dew_point": get_val_at_offset("dew_point_2m", 10.0),
         "current_temp": get_val_at_offset("temperature_2m", 15.0),
+        # --- Advanced Environmental Modifiers ---
+        "min_surface_temp_24h": min_window(surface_temp_vals, 24),
+        "surface_moisture_0_1cm": get_val_at_offset("soil_moisture_0_to_1cm", 0.15),
+        "surface_moisture_1_3cm": get_val_at_offset("soil_moisture_1_to_3cm", 0.20),
+        "avg_wind_6h": avg_window(wind_vals, 6),
+        "avg_wind_12h": avg_window(wind_vals, 12),
+        "avg_wind_24h": avg_window(wind_vals, 24),
+        "avg_wind_36h": avg_window(wind_vals, 36),
+        "avg_wind_48h": avg_window(wind_vals, 48),
+        "avg_cloud_72h": avg_window(cloud_vals, 72),
+        "snow_depth_m": get_val_at_offset("snow_depth", 0.0),
     }
 
 

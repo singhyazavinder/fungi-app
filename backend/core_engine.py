@@ -311,6 +311,74 @@ WEIGHTS = {
     },
 }
 
+# Species-specific environmental sensitivity profiles for advanced modifiers
+# wind_window_h: hours of wind history to average
+# wind_threshold_kmh: above this average, humidity score is penalized
+# surface_drought_multiplier: score multiplier when top soil is critically dry (lower = more sensitive)
+# snow_veto: whether snow cover blocks fruiting
+# snow_max_m: max snow depth (meters) the species can tolerate
+ENVIRONMENTAL_SENSITIVITY = {
+    "boletus_edulis": {
+        "wind_window_h": 24, "wind_threshold_kmh": 20.0,
+        "surface_drought_multiplier": 0.4,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "boletus_aestivalis": {
+        "wind_window_h": 12, "wind_threshold_kmh": 15.0,
+        "surface_drought_multiplier": 0.5,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "boletus_aereus": {
+        "wind_window_h": 12, "wind_threshold_kmh": 12.0,
+        "surface_drought_multiplier": 0.6,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "boletus_pinophilus": {
+        "wind_window_h": 48, "wind_threshold_kmh": 25.0,
+        "surface_drought_multiplier": 0.5,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "cantharellus_cibarius": {
+        "wind_window_h": 24, "wind_threshold_kmh": 12.0,
+        "surface_drought_multiplier": 0.3,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "craterellus_tubaeformis": {
+        "wind_window_h": 36, "wind_threshold_kmh": 15.0,
+        "surface_drought_multiplier": 0.3,
+        "snow_veto": True, "snow_max_m": 0.05,  # Can fruit through thin snow (<5cm)
+    },
+    "morchella_esculenta": {
+        "wind_window_h": 12, "wind_threshold_kmh": 10.0,
+        "surface_drought_multiplier": 0.6,
+        "snow_veto": False, "snow_max_m": 0.0,  # Snow melt is a positive trigger
+    },
+    "morchella_conica": {
+        "wind_window_h": 12, "wind_threshold_kmh": 10.0,
+        "surface_drought_multiplier": 0.6,
+        "snow_veto": False, "snow_max_m": 0.0,
+    },
+    "amanita_caesarea": {
+        "wind_window_h": 6, "wind_threshold_kmh": 8.0,
+        "surface_drought_multiplier": 0.7,  # Deep "egg" emerges forcefully
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "russula_cyanoxantha": {
+        "wind_window_h": 24, "wind_threshold_kmh": 15.0,
+        "surface_drought_multiplier": 0.4,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "craterellus_cornucopioides": {
+        "wind_window_h": 36, "wind_threshold_kmh": 15.0,
+        "surface_drought_multiplier": 0.4,
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+    "macrolepiota_procera": {
+        "wind_window_h": 6, "wind_threshold_kmh": 25.0,
+        "surface_drought_multiplier": 0.8,  # Deep saprotrophic mycelium, meadow-adapted
+        "snow_veto": True, "snow_max_m": 0.0,
+    },
+}
 
 
 def calculate_score(
@@ -406,6 +474,23 @@ def calculate_score(
     slope_weight = min(1.0, slope / 20.0)
     s_aspect = (base_aspect_score * slope_weight) + (0.8 * (1.0 - slope_weight))
 
+    # --- ADVANCED ENVIRONMENTAL MODIFIERS (Pre-Score) ---
+    env = ENVIRONMENTAL_SENSITIVITY.get(species_id, {})
+
+    # Wind Desiccation: strong wind strips humidity from forest floor boundary layer
+    wind_window = env.get("wind_window_h", 24)
+    avg_wind = weather_agg.get(f"avg_wind_{wind_window}h", 0.0)
+    wind_threshold = env.get("wind_threshold_kmh", 15.0)
+    if avg_wind > wind_threshold:
+        wind_excess = (avg_wind - wind_threshold) / wind_threshold
+        s_humid *= max(0.3, 1.0 - wind_excess)
+
+    # Cloud Cover: modifies rain effectiveness (clouds trap moisture in soil longer)
+    # 0% cloud → rain score reduced by 40%, 100% cloud → rain score unchanged
+    avg_cloud = weather_agg.get("avg_cloud_72h", 50.0)
+    cloud_factor = 0.6 + 0.4 * (avg_cloud / 100.0)
+    s_rain *= cloud_factor
+
     # Calculate pure biological score first (without community)
     bio_score = (
         weights["rain"] * s_rain
@@ -492,6 +577,24 @@ def calculate_score(
     forest_multiplier = 1.0
 
     total_score = base_score * forest_multiplier
+
+    # --- POST-SCORE ENVIRONMENTAL VETOES ---
+    # Frost Veto: surface temp below 2°C in last 24h destroys fruiting bodies
+    min_surface_temp = weather_agg.get("min_surface_temp_24h", 15.0)
+    if min_surface_temp < 2.0:
+        total_score *= 0.1
+
+    # Surface Drought Penalty: dry top soil aborts pin formation (species-specific severity)
+    m_0_1 = weather_agg.get("surface_moisture_0_1cm", 0.15)
+    m_1_3 = weather_agg.get("surface_moisture_1_3cm", 0.20)
+    if m_0_1 < 0.10 and m_1_3 < 0.15:
+        total_score *= env.get("surface_drought_multiplier", 0.6)
+
+    # Snow Veto: physical barrier prevents fruiting (except Finferla through thin snow)
+    snow_depth = weather_agg.get("snow_depth_m", 0.0)
+    snow_max = env.get("snow_max_m", 0.0)
+    if env.get("snow_veto", True) and snow_depth > snow_max:
+        total_score = 0.0
 
     final_score = min(1.0, max(0.0, total_score))
 
