@@ -775,61 +775,69 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Global interceptor to fix iOS Safari compass permission for ANY geolocate button
-document.addEventListener('click', async (e) => {
+document.addEventListener('click', function(e) {
   const isGeolocateBtn = e.target.closest('.maplibregl-ctrl-geolocate') || e.target.closest('#btn-my-loc') || e.target.closest('#btn-my-loc-mobile');
   
   if (isGeolocateBtn) {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      try {
-        await DeviceOrientationEvent.requestPermission();
-      } catch (err) {
-        console.warn('Orientation permission denied', err);
-      }
-    }
-    
-    // Inject the custom cone setup
-    if (!window._customCompassAdded) {
-      window._customCompassAdded = true;
-      const updateCompass = (heading) => {
-        const dot = document.querySelector('.maplibregl-user-location-dot');
-        if (!dot) return;
-        
-        let headingEl = document.querySelector('.custom-compass-cone');
-        if (!headingEl) {
-          const mlHeading = document.querySelector('.maplibregl-user-location-heading');
-          if (mlHeading) mlHeading.style.display = 'none';
+    // Inject the custom cone setup function
+    const setupCustomCompass = () => {
+      if (!window._customCompassAdded) {
+        window._customCompassAdded = true;
+        const updateCompass = (heading) => {
+          const dot = document.querySelector('.maplibregl-user-location-dot');
+          if (!dot) return;
+          
+          let headingEl = document.querySelector('.custom-compass-cone');
+          if (!headingEl) {
+            const mlHeading = document.querySelector('.maplibregl-user-location-heading');
+            if (mlHeading) mlHeading.style.display = 'none';
 
-          headingEl = document.createElement('div');
-          headingEl.className = 'custom-compass-cone';
-          headingEl.style.position = 'absolute';
-          headingEl.style.width = '0';
-          headingEl.style.height = '0';
-          headingEl.style.borderLeft = '14px solid transparent';
-          headingEl.style.borderRight = '14px solid transparent';
-          headingEl.style.borderBottom = '35px solid rgba(33, 150, 243, 0.7)';
-          headingEl.style.top = '-32px';
-          headingEl.style.left = '50%';
-          headingEl.style.transformOrigin = '50% 100%';
-          headingEl.style.marginLeft = '-14px';
-          headingEl.style.pointerEvents = 'none';
-          headingEl.style.zIndex = '-1';
-          dot.appendChild(headingEl);
-        }
-        
-        const mapBearing = map.getBearing();
-        const relativeHeading = heading - mapBearing;
-        headingEl.style.transform = `rotate(${relativeHeading}deg)`;
-      };
-
-      if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", function(event) {
-          if (event.webkitCompassHeading !== undefined) {
-            updateCompass(event.webkitCompassHeading);
-          } else if (event.alpha !== null) {
-            updateCompass(360 - event.alpha);
+            headingEl = document.createElement('div');
+            headingEl.className = 'custom-compass-cone';
+            headingEl.style.position = 'absolute';
+            headingEl.style.width = '0';
+            headingEl.style.height = '0';
+            headingEl.style.borderLeft = '14px solid transparent';
+            headingEl.style.borderRight = '14px solid transparent';
+            headingEl.style.borderBottom = '35px solid rgba(33, 150, 243, 0.7)';
+            headingEl.style.top = '-32px';
+            headingEl.style.left = '50%';
+            headingEl.style.transformOrigin = '50% 100%';
+            headingEl.style.marginLeft = '-14px';
+            headingEl.style.pointerEvents = 'none';
+            headingEl.style.zIndex = '-1';
+            dot.appendChild(headingEl);
           }
-        });
+          
+          const mapBearing = map.getBearing();
+          const relativeHeading = heading - mapBearing;
+          headingEl.style.transform = `rotate(${relativeHeading}deg)`;
+        };
+
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener("deviceorientation", function(event) {
+            if (event.webkitCompassHeading !== undefined) {
+              updateCompass(event.webkitCompassHeading);
+            } else if (event.alpha !== null) {
+              updateCompass(360 - event.alpha);
+            }
+          });
+        }
       }
+    };
+
+    // Request permission immediately on click (strict Safari user-gesture requirement)
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(response => {
+          if (response === 'granted') {
+            setupCustomCompass();
+          }
+        })
+        .catch(console.error);
+    } else {
+      // Non-iOS devices (Android)
+      setupCustomCompass();
     }
   }
 }, true); // Use capture to ensure it runs before maplibre stops propagation
