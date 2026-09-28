@@ -131,6 +131,8 @@ const i18n = {
     popup_poor: "scarso",
     popup_today: "OGGI",
     popup_loading: "Analisi del terreno in corso...",
+    popup_wind: "💨 Vento (24h)",
+    popup_cloud: "☁️ Nuvolosità",
     popup_broadleaved_1: "faggio comune",
     popup_broadleaved_2: "castagno",
     popup_broadleaved_3: "roverella",
@@ -198,6 +200,8 @@ const i18n = {
     popup_poor: "poor",
     popup_today: "TODAY",
     popup_loading: "Analyzing terrain data...",
+    popup_wind: "💨 Wind (24h)",
+    popup_cloud: "☁️ Cloud Cover",
     popup_broadleaved_1: "common beech",
     popup_broadleaved_2: "chestnut",
     popup_broadleaved_3: "downy oak",
@@ -1615,11 +1619,22 @@ async function fetchPrediction(lat, lon, forcedScore = null) {
   marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
 
   try {
-    const response = await fetch(`${API_URL}/predict/point`, {
+    let response = await fetch(`${API_URL}/predict/point`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lat, lon, species_id: speciesId })
     });
+
+    if (response.status === 503) {
+      console.log("Point API blocked, client-fetching...");
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&forecast_days=16&past_days=14`;
+      const wData = await fetch(url).then(r => r.json());
+      response = await fetch(`${API_URL}/predict/point_with_weather`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, species_id: speciesId, weather: wData })
+      });
+    }
 
     if (!response.ok) throw new Error('API error');
 
@@ -1758,6 +1773,14 @@ function renderPrediction(data) {
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 2px 0;">${t.popup_rain_7d}</td>
         <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.recent_rainfall_mm)} mm</td>
+      </tr>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 2px 0;">${t.popup_wind || "💨 Wind"}</td>
+        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.avg_wind_24h || 0)} km/h</td>
+      </tr>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 2px 0;">${t.popup_cloud || "☁️ Clouds"}</td>
+        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.avg_cloud_72h || 0)}%</td>
       </tr>
       
     </table>

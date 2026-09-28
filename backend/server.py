@@ -133,6 +133,10 @@ def predict_point(req: PredictionRequest):
     if req.species_id not in SPECIES_PROFILES:
         raise HTTPException(status_code=404, detail="Species not found")
 
+class PointWeatherPayload(PredictionRequest):
+    weather: Dict[str, Any]
+
+def _build_point_response(req: PredictionRequest, weather: Dict[str, Any]):
     terrain = get_terrain_data(req.lat, req.lon)
     if terrain["elevation"] == 0.0:
         return {"score": 0.0, "message": "No terrain data for this point"}
@@ -162,7 +166,6 @@ def predict_point(req: PredictionRequest):
         base_score = 0
         base_tree_type = ""
         
-        weather = get_weather_forecast(req.lat, req.lon, terrain["elevation"])
         weather_agg = aggregate_weather_data(weather)
         
         for day in range(8):
@@ -197,6 +200,35 @@ def predict_point(req: PredictionRequest):
         "weather_summary": weather_agg,
         "forecast": {"future_scores": future_scores},
     }
+
+@app.post("/predict/point")
+def predict_point(req: PredictionRequest):
+    """Predict for a single point."""
+    if req.species_id not in SPECIES_PROFILES:
+        raise HTTPException(status_code=404, detail="Species not found")
+
+    try:
+        weather = get_weather_forecast(req.lat, req.lon, 1000.0)
+    except Exception:
+        raise HTTPException(status_code=503, detail="Weather API rate limited or unavailable.")
+    
+    return _build_point_response(req, weather)
+
+
+@app.post("/predict/point_with_weather")
+def predict_point_with_weather(req: PointWeatherPayload):
+    """Predict for a single point using client-provided weather."""
+    if req.species_id not in SPECIES_PROFILES:
+        raise HTTPException(status_code=404, detail="Species not found")
+    
+    # Save cache
+    import data_services
+    import time
+    cache_key = f"{req.lat:.2f},{req.lon:.2f}"
+    data_services._weather_cache[cache_key] = (req.weather, time.time())
+
+    return _build_point_response(req, req.weather)
+
 
 
 def sync_to_github():
