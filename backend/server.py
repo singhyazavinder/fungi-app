@@ -141,11 +141,6 @@ def get_species():
     return SPECIES_PROFILES
 
 
-@app.post("/predict/point")
-def predict_point(req: PredictionRequest):
-    """Predict for a single point."""
-    if req.species_id not in SPECIES_PROFILES:
-        raise HTTPException(status_code=404, detail="Species not found")
 
 class PointWeatherPayload(PredictionRequest):
     weather: Dict[str, Any]
@@ -528,37 +523,7 @@ def predict_grid(region_id: str, species_id: str, response: Response):
 
 
 
-@app.post("/predict/point_with_weather")
-def predict_point_with_weather(payload: PointWeatherPayload):
-    import time
-    from data_services import _weather_cache
-    
-    current_time = time.time()
-    if payload.weather:
-        cache_key = f"{payload.lat:.2f},{payload.lon:.2f}"
-        _weather_cache[cache_key] = (payload.weather, current_time)
 
-    # Now that it's cached, just call the normal predict_point function!
-    req = PredictionRequest(lat=payload.lat, lon=payload.lon, species_id=payload.species_id)
-    return predict_point(req)
-
-
-@app.post("/predict/grid_with_weather/{region_id}/{species_id}")
-def predict_grid_with_weather(region_id: str, species_id: str, payload: WeatherPayload, response: Response):
-    import time
-    from data_services import _weather_cache
-    
-    current_time = time.time()
-    for item in payload.regional_weather:
-        lat = item.get("lat")
-        lon = item.get("lon")
-        raw_data = item.get("data")
-        if lat and lon and raw_data:
-            cache_key = f"{lat:.2f},{lon:.2f}"
-            _weather_cache[cache_key] = (raw_data, current_time)
-
-    # Now that it's cached, just call the normal predict_grid function!
-    return predict_grid(region_id, species_id, response)
 
 @app.get("/buzz")
 def get_buzz():
