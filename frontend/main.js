@@ -1794,44 +1794,43 @@ function renderPrediction(data) {
     </div>
     
     <h3 style="font-size: 0.9rem; margin-bottom: 5px; border-bottom: 2px solid var(--border); padding-bottom: 3px;">${t.popup_structure}</h3>
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 10px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 10px; line-height: 1.2;">
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_altitude}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.terrain.elevation)} m</td>
-      </tr>
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_soil_ph}</td>
-        <td style="text-align: right; font-weight: bold;">${(data.soil_ph || 0).toFixed(1)}</td>
+        <td style="padding: 1px 0;">${t.popup_altitude}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${Math.round(data.terrain.elevation)} m</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_soil_temp}</td>
-        <td style="text-align: right; font-weight: bold;">${(data.weather_summary?.current_soil_temp_6cm || 0).toFixed(1)} °C</td>
-      </tr>
-        <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_soil_moist}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round((data.weather_summary?.current_soil_moisture || 0) * 100)}%</td>
+        <td style="padding: 1px 0;">${t.popup_soil_ph}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${(data.soil_ph || 0).toFixed(1)}</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_air_humid}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.current_humidity)}%</td>
+        <td style="padding: 1px 0;">${t.popup_soil_temp}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${(data.weather_summary?.current_soil_temp_6cm || 0).toFixed(1)} °C</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_rain_7d}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary?.recent_rainfall_mm || 0)} mm</td>
+        <td style="padding: 1px 0;">${t.popup_soil_moist}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${Math.round((data.weather_summary?.current_soil_moisture || 0) * 100)}%</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_wind_24h}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary?.avg_wind_24h || 0)} km/h</td>
+        <td style="padding: 1px 0;">${t.popup_air_humid}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${Math.round(data.weather_summary.current_humidity)}%</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_cloud_72h}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary?.avg_cloud_72h || 0)}%</td>
+        <td style="padding: 1px 0;">${t.popup_rain_7d}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${Math.round(data.weather_summary?.recent_rainfall_mm || 0)} mm</td>
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_snow_depth}</td>
-        <td style="text-align: right; font-weight: bold;">${(data.weather_summary?.snow_depth_m || 0).toFixed(2)} m</td>
+        <td style="padding: 1px 0;">${t.popup_wind_24h}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${Math.round(data.weather_summary?.avg_wind_24h || 0)} km/h</td>
       </tr>
-      
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 1px 0;">${t.popup_cloud_72h}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${Math.round(data.weather_summary?.avg_cloud_72h || 0)}%</td>
+      </tr>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 1px 0;">${t.popup_snow_depth}</td>
+        <td style="text-align: right; font-weight: bold; padding: 1px 0;">${(data.weather_summary?.snow_depth_m || 0).toFixed(2)} m</td>
+      </tr>
     </table>
     
     <h3 style="font-size: 0.9rem; margin-bottom: 5px; border-bottom: 2px solid var(--border); padding-bottom: 3px;">${t.popup_trees}</h3>
