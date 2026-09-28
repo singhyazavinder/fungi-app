@@ -1706,19 +1706,19 @@ function renderPrediction(data) {
   let treeHTML = '';
   if (treeList.includes('Broadleaved')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_1}</span><span style="font-weight: bold;">45%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_2}</span><span style="font-weight: bold;">35%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_3}</span><span style="font-weight: bold;">20%</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
   } else if (treeList.includes('Coniferous')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_1}</span><span style="font-weight: bold;">60%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_2}</span><span style="font-weight: bold;">30%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_3}</span><span style="font-weight: bold;">10%</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
   } else if (treeList.includes('Mixed')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_1}</span><span style="font-weight: bold;">40%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_2}</span><span style="font-weight: bold;">40%</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_3}</span><span style="font-weight: bold;">20%</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
   } else {
     treeHTML = `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${treeList}</span><span style="font-weight: bold;">100%</span></div>`;
   }
