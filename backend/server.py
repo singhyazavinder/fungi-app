@@ -340,26 +340,12 @@ def get_regions():
     return list(REGIONS.keys())
 
 
-
-
-
-@app.get("/predict/grid/{region_id}/{species_id}")
-def predict_grid(region_id: str, species_id: str, response: Response):
-    """Generate a GeoJSON grid of predictions for a region."""
-    if region_id not in REGIONS:
-        raise HTTPException(status_code=404, detail="Region not found")
-    if species_id not in SPECIES_PROFILES:
-        raise HTTPException(status_code=404, detail="Species not found")
-
+def _build_grid_response(region_id: str, species_id: str, regional_weather: list, response: Response):
     bounds = REGIONS[region_id]
     center_lat = (bounds["lat_min"] + bounds["lat_max"]) / 2
     center_lon = (bounds["lon_min"] + bounds["lon_max"]) / 2
 
     buzz_data = get_community_buzz()
-
-    regional_weather = get_regional_weather(bounds)
-    if not regional_weather or not regional_weather[0].get("agg"):
-        raise HTTPException(status_code=503, detail="Weather API rate limited or unavailable.")
 
     # Query soil ONCE for the region center (as soil pH doesn't vary as dynamically as weather)
     center_soil_ph = get_soil_ph(center_lat, center_lon)
@@ -444,6 +430,57 @@ def predict_grid(region_id: str, species_id: str, response: Response):
     # Cache this heavy response in the browser for 6 hours
     response.headers["Cache-Control"] = "public, max-age=21600"
     return {"type": "FeatureCollection", "features": features}
+
+
+from pydantic import BaseModel
+from typing import List, Dict, Any
+import time
+
+class WeatherPayload(BaseModel):
+    regional_weather: List[Dict[str, Any]]
+
+@app.post("/predict/grid_with_weather/{region_id}/{species_id}")
+def predict_grid_with_weather(region_id: str, species_id: str, payload: WeatherPayload, response: Response):
+    if region_id not in REGIONS:
+        raise HTTPException(status_code=404, detail="Region not found")
+    if species_id not in SPECIES_PROFILES:
+        raise HTTPException(status_code=404, detail="Species not found")
+
+    import data_services
+    regional_weather_agg = []
+    current_time = time.time()
+    
+    for item in payload.regional_weather:
+        lat = item.get("lat")
+        lon = item.get("lon")
+        raw_data = item.get("data")
+        if lat and lon and raw_data:
+            agg = data_services.aggregate_weather_data(raw_data)
+            regional_weather_agg.append({"lat": lat, "lon": lon, "agg": agg})
+            # Cache the user-fetched data in server RAM!
+            cache_key = f"{lat:.2f},{lon:.2f}"
+            data_services._weather_cache[cache_key] = (raw_data, current_time)
+
+    if not regional_weather_agg:
+        raise HTTPException(status_code=400, detail="Invalid weather data provided")
+
+    return _build_grid_response(region_id, species_id, regional_weather_agg, response)
+
+
+@app.get("/predict/grid/{region_id}/{species_id}")
+def predict_grid(region_id: str, species_id: str, response: Response):
+    """Generate a GeoJSON grid of predictions for a region."""
+    if region_id not in REGIONS:
+        raise HTTPException(status_code=404, detail="Region not found")
+    if species_id not in SPECIES_PROFILES:
+        raise HTTPException(status_code=404, detail="Species not found")
+
+    bounds = REGIONS[region_id]
+    regional_weather = get_regional_weather(bounds)
+    if not regional_weather or not regional_weather[0].get("agg"):
+        raise HTTPException(status_code=503, detail="Weather API rate limited or unavailable.")
+
+    return _build_grid_response(region_id, species_id, regional_weather, response)
 
 
 @app.get("/buzz")

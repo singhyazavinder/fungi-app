@@ -1510,8 +1510,37 @@ async function loadRegionGrid() {
 
   try {
     // Fetch only the selected region
-    const res = await fetch(`${API_URL}/predict/grid/${reqRegion}/${reqSpecies}`);
-    const geojson = res.ok ? await res.json() : null;
+    let res = await fetch(`${API_URL}/predict/grid/${reqRegion}/${reqSpecies}`);
+    let geojson = null;
+
+    if (res.status === 503) {
+      console.log("Server API blocked! Using Client-Side Fetching fallback...");
+      const b = REGIONS[reqRegion];
+      const points = [
+        { lat: b.lat_min, lon: b.lon_min },
+        { lat: b.lat_min, lon: b.lon_max },
+        { lat: b.lat_max, lon: b.lon_min },
+        { lat: b.lat_max, lon: b.lon_max }
+      ];
+      
+      const fetchPromises = points.map(p => {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&forecast_days=16&past_days=14`;
+        return fetch(url).then(r => r.json()).then(data => ({ lat: p.lat, lon: p.lon, data: data }));
+      });
+      
+      const results = await Promise.all(fetchPromises);
+      
+      res = await fetch(`${API_URL}/predict/grid_with_weather/${reqRegion}/${reqSpecies}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ regional_weather: results })
+      });
+      geojson = res.ok ? await res.json() : null;
+    } else {
+      geojson = res.ok ? await res.json() : null;
+    }
 
     if (geojson && geojson.features) {
       gridCache[cacheKey] = {
