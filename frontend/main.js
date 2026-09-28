@@ -122,6 +122,9 @@ const i18n = {
     popup_soil_moist: "🌱 Umidità suolo",
     popup_air_humid: "💦 Umidità aria",
     popup_rain_7d: "🌧️ Pioggia (ultimi 7gg)",
+    popup_wind_24h: "🌬️ Vento (medio 24h)",
+    popup_cloud_72h: "☁️ Copertura nuvolosa",
+    popup_snow_depth: "❄️ Neve al suolo",
     popup_trees: "Essenze dominanti",
     popup_forecast: "Potenziale 7 giorni",
     popup_zone: "Zona",
@@ -189,6 +192,9 @@ const i18n = {
     popup_soil_moist: "🌱 Soil Moisture",
     popup_air_humid: "💦 Air Humidity",
     popup_rain_7d: "🌧️ Rain (last 7 days)",
+    popup_wind_24h: "🌬️ Wind (avg 24h)",
+    popup_cloud_72h: "☁️ Cloud Cover",
+    popup_snow_depth: "❄️ Snow Depth",
     popup_trees: "Dominant Tree Species",
     popup_forecast: "7-Day Potential",
     popup_zone: "Zone",
@@ -1771,7 +1777,19 @@ function renderPrediction(data) {
       </tr>
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 2px 0;">${t.popup_rain_7d}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.recent_rainfall_mm)} mm</td>
+        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary?.recent_rainfall_mm || 0)} mm</td>
+      </tr>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 2px 0;">${t.popup_wind_24h}</td>
+        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary?.avg_wind_24h || 0)} km/h</td>
+      </tr>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 2px 0;">${t.popup_cloud_72h}</td>
+        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary?.avg_cloud_72h || 0)}%</td>
+      </tr>
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 2px 0;">${t.popup_snow_depth}</td>
+        <td style="text-align: right; font-weight: bold;">${(data.weather_summary?.snow_depth_m || 0).toFixed(2)} m</td>
       </tr>
       
     </table>
