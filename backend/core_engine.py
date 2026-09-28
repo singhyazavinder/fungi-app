@@ -441,7 +441,9 @@ def calculate_score(
 
     # 3. Soil pH Score
     min_ph, max_ph = profile["ideal_ph"]
-    if min_ph <= soil_ph <= max_ph:
+    if soil_ph is None:
+        s_ph = 1.0
+    elif min_ph <= soil_ph <= max_ph:
         s_ph = 1.0
     else:
         dist = min(abs(soil_ph - min_ph), abs(soil_ph - max_ph))
@@ -618,12 +620,13 @@ def calculate_score(
     # pH Toxicity Penalty: soil chemistry is an absolute biological limit
     # pH is logarithmic — each unit = 10x H+ concentration difference
     # Quadratic decay: score drops to 0 at ph_lethal_dist units outside ideal range
-    min_ph, max_ph = profile["ideal_ph"]
-    if soil_ph < min_ph or soil_ph > max_ph:
-        ph_dist = min(abs(soil_ph - min_ph), abs(soil_ph - max_ph))
-        ph_lethal = PH_LETHAL_DIST.get(species_id, 2.0)
-        ph_penalty = max(0.0, 1.0 - (ph_dist / ph_lethal) ** 2)
-        total_score *= ph_penalty
+    if soil_ph is not None:
+        min_ph, max_ph = profile["ideal_ph"]
+        if soil_ph < min_ph or soil_ph > max_ph:
+            ph_dist = min(abs(soil_ph - min_ph), abs(soil_ph - max_ph))
+            ph_lethal = PH_LETHAL_DIST.get(species_id, 2.0)
+            ph_penalty = max(0.0, 1.0 - (ph_dist / ph_lethal) ** 2)
+            total_score *= ph_penalty
 
     final_score = min(1.0, max(0.0, total_score))
 
