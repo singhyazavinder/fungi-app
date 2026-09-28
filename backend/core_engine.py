@@ -380,6 +380,25 @@ ENVIRONMENTAL_SENSITIVITY = {
     },
 }
 
+# pH tolerance: distance (pH units) from ideal range where score drops to zero
+# Strict (1.5): obligate species on chemically specific soil (pine-acid, limestone-alkaline)
+# Moderate (2.0): mycorrhizal species with some flexibility
+# Flexible (3.0): saprotrophic species tolerating diverse soils
+PH_LETHAL_DIST = {
+    "boletus_edulis": 2.0,
+    "boletus_aestivalis": 2.0,
+    "boletus_aereus": 2.0,
+    "boletus_pinophilus": 1.5,
+    "cantharellus_cibarius": 2.0,
+    "craterellus_tubaeformis": 1.5,
+    "morchella_esculenta": 1.5,
+    "morchella_conica": 1.5,
+    "amanita_caesarea": 2.0,
+    "russula_cyanoxantha": 2.0,
+    "craterellus_cornucopioides": 2.0,
+    "macrolepiota_procera": 3.0,
+}
+
 
 def calculate_score(
     species_id: str,
@@ -595,6 +614,16 @@ def calculate_score(
     snow_max = env.get("snow_max_m", 0.0)
     if env.get("snow_veto", True) and snow_depth > snow_max:
         total_score = 0.0
+
+    # pH Toxicity Penalty: soil chemistry is an absolute biological limit
+    # pH is logarithmic — each unit = 10x H+ concentration difference
+    # Quadratic decay: score drops to 0 at ph_lethal_dist units outside ideal range
+    min_ph, max_ph = profile["ideal_ph"]
+    if soil_ph < min_ph or soil_ph > max_ph:
+        ph_dist = min(abs(soil_ph - min_ph), abs(soil_ph - max_ph))
+        ph_lethal = PH_LETHAL_DIST.get(species_id, 2.0)
+        ph_penalty = max(0.0, 1.0 - (ph_dist / ph_lethal) ** 2)
+        total_score *= ph_penalty
 
     final_score = min(1.0, max(0.0, total_score))
 
