@@ -627,7 +627,18 @@ def calculate_score(
 
     final_score = min(1.0, max(0.0, total_score))
 
-    tree_type_str = ", ".join(local_trees) if local_trees else "Unknown"
+    if not local_trees:
+        tree_type_str = "Unknown"
+    elif "Artificial" in local_trees:
+        tree_type_str = "Artificial"
+    elif "Oak" in local_trees and "Spruce" in local_trees:
+        tree_type_str = "Mixed"
+    elif "Oak" in local_trees:
+        tree_type_str = "Broadleaved"
+    elif "Spruce" in local_trees:
+        tree_type_str = "Coniferous"
+    else:
+        tree_type_str = "Unknown"
 
     return final_score, tree_type_str
 
