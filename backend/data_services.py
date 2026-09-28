@@ -70,7 +70,7 @@ def get_weather_forecast(lat: float, lon: float, elevation: float) -> Dict[str, 
         ],
         "timezone": "Europe/Rome",
         "past_days": 14,  # Get last 14 days of history to see cumulative rain
-        "forecast_days": 16,
+        "forecast_days": 1,
     }
 
     headers = {
@@ -159,6 +159,7 @@ def get_regional_weather(bounds: dict) -> list:
             corners.append({"lat": lat, "lon": lon, "agg": agg})
         except Exception as e:
             print(f"Weather fetch failed for {lat},{lon}: {e}")
+        time.sleep(1.0) # Prevent 503 rate-limiting from Open-Meteo by pacing the 4 requests
 
     return corners
 
