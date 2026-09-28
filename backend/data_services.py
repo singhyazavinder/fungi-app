@@ -73,10 +73,14 @@ def get_weather_forecast(lat: float, lon: float, elevation: float) -> Dict[str, 
         "forecast_days": 16,
     }
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
             data = response.json()
             _weather_cache[cache_key] = (data, current_time)
