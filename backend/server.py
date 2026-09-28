@@ -1,6 +1,6 @@
 import math
 import os
-from typing import Dict, List
+from typing import Dict, List, Any
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
@@ -464,9 +464,7 @@ def _build_grid_response(region_id: str, species_id: str, regional_weather: list
     return {"type": "FeatureCollection", "features": features}
 
 
-from pydantic import BaseModel
-from typing import List, Dict, Any
-import time
+
 
 class WeatherPayload(BaseModel):
     regional_weather: List[Dict[str, Any]]
