@@ -134,15 +134,22 @@ const i18n = {
     popup_poor: "scarso",
     popup_today: "OGGI",
     popup_loading: "Analisi del terreno in corso...",
-    popup_broadleaved_1: "faggio comune",
-    popup_broadleaved_2: "castagno",
-    popup_broadleaved_3: "roverella",
-    popup_conifer_1: "abete rosso",
-    popup_conifer_2: "pino silvestre",
-    popup_conifer_3: "larice",
-    popup_mixed_1: "faggio comune",
-    popup_mixed_2: "abete rosso",
-    popup_mixed_3: "orniello",
+    popup_broadleaved_1: "Faggio",
+    popup_broadleaved_2: "Castagno",
+    popup_broadleaved_3: "Quercia / Roverella",
+    popup_broadleaved_4: "Betulla",
+    popup_broadleaved_5: "Olmo",
+    popup_broadleaved_6: "Frassino",
+    popup_conifer_1: "Abete rosso",
+    popup_conifer_2: "Pino silvestre",
+    popup_conifer_3: "Abete bianco",
+    popup_conifer_4: "Pino",
+    popup_conifer_5: "Conifere gen.",
+    popup_mixed_1: "Faggio (Misto)",
+    popup_mixed_2: "Abete rosso (Misto)",
+    popup_mixed_3: "Castagno (Misto)",
+    popup_mixed_4: "Quercia (Misto)",
+    popup_mixed_5: "Pino silvestre (Misto)",
     found: "Trovato 🍄",
     recorded: "Registrato! Grazie per aver contribuito al modello.",
     saved_offline: "Salvato offline! Verrà sincronizzato appena tornerà la connessione.",
@@ -204,15 +211,22 @@ const i18n = {
     popup_poor: "poor",
     popup_today: "TODAY",
     popup_loading: "Analyzing terrain data...",
-    popup_broadleaved_1: "common beech",
-    popup_broadleaved_2: "chestnut",
-    popup_broadleaved_3: "downy oak",
-    popup_conifer_1: "Norway spruce",
-    popup_conifer_2: "Scots pine",
-    popup_conifer_3: "larch",
-    popup_mixed_1: "common beech",
-    popup_mixed_2: "Norway spruce",
-    popup_mixed_3: "manna ash",
+    popup_broadleaved_1: "Beech",
+    popup_broadleaved_2: "Chestnut",
+    popup_broadleaved_3: "Oak",
+    popup_broadleaved_4: "Birch",
+    popup_broadleaved_5: "Elm",
+    popup_broadleaved_6: "Ash",
+    popup_conifer_1: "Spruce",
+    popup_conifer_2: "Scots Pine",
+    popup_conifer_3: "Fir",
+    popup_conifer_4: "Pine",
+    popup_conifer_5: "Gen. Conifer",
+    popup_mixed_1: "Beech (Mixed)",
+    popup_mixed_2: "Spruce (Mixed)",
+    popup_mixed_3: "Chestnut (Mixed)",
+    popup_mixed_4: "Oak (Mixed)",
+    popup_mixed_5: "Scots Pine (Mixed)",
     found: "Found 🍄",
     recorded: "Recorded successfully! Thank you for contributing to the model.",
     saved_offline: "Saved offline! It will sync when the connection returns.",
@@ -1708,17 +1722,24 @@ function renderPrediction(data) {
     treeHTML = `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_4}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_5}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_6}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
   } else if (treeList.includes('Coniferous')) {
     treeHTML = `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_4}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_5}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
   } else if (treeList.includes('Mixed')) {
     treeHTML = `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_4}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_5}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
   } else {
     treeHTML = `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${treeList}</span><span style="font-weight: bold;">100%</span></div>`;
   }
