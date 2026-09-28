@@ -1728,30 +1728,39 @@ function renderPrediction(data) {
   // Convert Corine string to a simulated percentage list for the premium look
   let treeList = data.tree_type || 'Unknown';
   let treeHTML = '';
+  const badgeStyle = "background: rgba(128,128,128,0.1); border: 1px solid var(--border); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;";
+  const checkIcon = `<span style="color: #ce93d8; font-weight: bold; font-size: 0.8rem;">✓</span>`;
+
   if (treeList.includes('Broadleaved')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_4}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_5}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_broadleaved_6}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;">
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_broadleaved_1}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_broadleaved_2}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_broadleaved_3}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_broadleaved_4}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_broadleaved_5}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_broadleaved_6}</span>
+      </div>`;
   } else if (treeList.includes('Coniferous')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_4}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_conifer_5}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;">
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_conifer_1}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_conifer_2}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_conifer_3}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_conifer_4}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_conifer_5}</span>
+      </div>`;
   } else if (treeList.includes('Mixed')) {
     treeHTML = `
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_1}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_2}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_3}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_4}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>
-      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${t.popup_mixed_5}</span><span style="font-weight: bold; color: #4a148c;">✓</span></div>`;
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;">
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_mixed_1}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_mixed_2}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_mixed_3}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_mixed_4}</span>
+        <span style="${badgeStyle}">${checkIcon} ${t.popup_mixed_5}</span>
+      </div>`;
   } else {
-    treeHTML = `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 4px 0;"><span>${treeList}</span><span style="font-weight: bold;">100%</span></div>`;
+    treeHTML = `<div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;"><span style="${badgeStyle}">${treeList}</span></div>`;
   }
 
   const today = new Date();
