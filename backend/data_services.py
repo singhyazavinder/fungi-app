@@ -70,7 +70,7 @@ def get_weather_forecast(lat: float, lon: float, elevation: float) -> Dict[str, 
         ],
         "timezone": "Europe/Rome",
         "past_days": 14,  # Get last 14 days of history to see cumulative rain
-        "forecast_days": 1,
+        "forecast_days": 8,
     }
 
     headers = {
