@@ -1721,9 +1721,9 @@ function renderPrediction(data) {
   let scoreColor = '#ce93d8';
   let scoreText = t.popup_poor;
 
-  if (scorePct >= 80) { scoreColor = '#4a148c'; scoreText = t.popup_optimal; }
-  else if (scorePct >= 60) { scoreColor = '#6a1b9a'; scoreText = t.popup_good; }
-  else if (scorePct >= 40) { scoreColor = '#9c27b0'; scoreText = t.popup_medium; }
+  if (scorePct >= 81) { scoreColor = '#4a148c'; scoreText = t.popup_optimal; }
+  else if (scorePct >= 61) { scoreColor = '#6a1b9a'; scoreText = t.popup_good; }
+  else if (scorePct >= 41) { scoreColor = '#9c27b0'; scoreText = t.popup_medium; }
 
   // Convert Corine string to a simulated percentage list for the premium look
   let treeList = data.tree_type || 'Unknown';
