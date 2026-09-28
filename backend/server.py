@@ -12,6 +12,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+import time
 import datetime
 from core_engine import REGIONS, SPECIES_PROFILES, calculate_score, generate_grid
 
