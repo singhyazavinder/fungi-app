@@ -131,8 +131,6 @@ const i18n = {
     popup_poor: "scarso",
     popup_today: "OGGI",
     popup_loading: "Analisi del terreno in corso...",
-    popup_wind: "💨 Vento (24h)",
-    popup_cloud: "☁️ Nuvolosità",
     popup_broadleaved_1: "faggio comune",
     popup_broadleaved_2: "castagno",
     popup_broadleaved_3: "roverella",
@@ -200,8 +198,6 @@ const i18n = {
     popup_poor: "poor",
     popup_today: "TODAY",
     popup_loading: "Analyzing terrain data...",
-    popup_wind: "💨 Wind (24h)",
-    popup_cloud: "☁️ Cloud Cover",
     popup_broadleaved_1: "common beech",
     popup_broadleaved_2: "chestnut",
     popup_broadleaved_3: "downy oak",
@@ -1513,7 +1509,6 @@ async function loadRegionGrid() {
   document.getElementById('loading-overlay').style.display = 'flex';
 
   try {
-    // Fetch only the selected region
     let res = await fetch(`${API_URL}/predict/grid/${reqRegion}/${reqSpecies}`);
     let geojson = null;
 
@@ -1537,7 +1532,8 @@ async function loadRegionGrid() {
       res = await fetch(`${API_URL}/predict/grid_with_weather/${reqRegion}/${reqSpecies}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Fungi-Auth': secretPassword || ''
         },
         body: JSON.stringify({ regional_weather: results })
       });
@@ -1631,7 +1627,10 @@ async function fetchPrediction(lat, lon, forcedScore = null) {
       const wData = await fetch(url).then(r => r.json());
       response = await fetch(`${API_URL}/predict/point_with_weather`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Fungi-Auth': secretPassword || ''
+        },
         body: JSON.stringify({ lat, lon, species_id: speciesId, weather: wData })
       });
     }
@@ -1773,14 +1772,6 @@ function renderPrediction(data) {
       <tr style="border-bottom: 1px solid var(--border);">
         <td style="padding: 2px 0;">${t.popup_rain_7d}</td>
         <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.recent_rainfall_mm)} mm</td>
-      </tr>
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_wind || "💨 Wind"}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.avg_wind_24h || 0)} km/h</td>
-      </tr>
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 2px 0;">${t.popup_cloud || "☁️ Clouds"}</td>
-        <td style="text-align: right; font-weight: bold;">${Math.round(data.weather_summary.avg_cloud_72h || 0)}%</td>
       </tr>
       
     </table>
