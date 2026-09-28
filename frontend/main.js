@@ -1597,11 +1597,11 @@ async function loadRegionGrid() {
   document.getElementById('loading-overlay').style.display = 'flex';
 
   try {
-    let res = await fetch(`${API_URL}/predict/grid/${reqRegion}/${reqSpecies}`);
+    let res;
     let geojson = null;
 
-    if (res.status === 503) {
-      console.log("Server API blocked! Using Client-Side Fetching fallback...");
+    // ALWAYS fetch weather client-side first (avoids Render shared-IP rate limiting)
+    try {
       const b = REGIONS[reqRegion];
       const points = [
         { lat: b.lat_min, lon: b.lon_min },
@@ -1610,12 +1610,14 @@ async function loadRegionGrid() {
         { lat: b.lat_max, lon: b.lon_max }
       ];
       
-      const fetchPromises = points.map(p => {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&forecast_days=16&past_days=14`;
-        return fetch(url).then(r => r.json()).then(data => ({ lat: p.lat, lon: p.lon, data: data }));
-      });
-      
-      const results = await Promise.all(fetchPromises);
+      // Fetch weather for all 4 corners from the browser (sequential to avoid self-rate-limiting)
+      const results = [];
+      for (const p of points) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&timezone=Europe%2FRome&forecast_days=8&past_days=14`;
+        const data = await fetch(url).then(r => r.json());
+        if (!data || !data.hourly || !data.hourly.temperature_2m) throw new Error('Bad weather data');
+        results.push({ lat: p.lat, lon: p.lon, data });
+      }
       
       res = await fetch(`${API_URL}/predict/grid_with_weather/${reqRegion}/${reqSpecies}`, {
         method: 'POST',
@@ -1626,7 +1628,9 @@ async function loadRegionGrid() {
         body: JSON.stringify({ regional_weather: results })
       });
       geojson = res.ok ? await res.json() : null;
-    } else {
+    } catch (clientErr) {
+      console.warn("Client weather failed for grid, falling back to server:", clientErr);
+      res = await fetch(`${API_URL}/predict/grid/${reqRegion}/${reqSpecies}`);
       geojson = res.ok ? await res.json() : null;
     }
 
@@ -1703,23 +1707,32 @@ async function fetchPrediction(lat, lon, forcedScore = null) {
   marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
 
   try {
-    let response = await fetch(`${API_URL}/predict/point`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lat, lon, species_id: speciesId })
-    });
+    let response;
+    
+    // ALWAYS fetch weather client-side first (each user's browser IP avoids Render's shared-IP rate limits)
+    try {
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&timezone=Europe%2FRome&forecast_days=8&past_days=14`;
+      const wData = await fetch(weatherUrl).then(r => r.json());
 
-    if (response.status === 503) {
-      console.log("Point API blocked, client-fetching...");
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&forecast_days=16&past_days=14`;
-      const wData = await fetch(url).then(r => r.json());
-      response = await fetch(`${API_URL}/predict/point_with_weather`, {
+      // Verify the data is valid (has hourly arrays)
+      if (wData && wData.hourly && wData.hourly.temperature_2m && wData.hourly.temperature_2m.length > 0) {
+        response = await fetch(`${API_URL}/predict/point_with_weather`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Fungi-Auth': secretPassword || ''
+          },
+          body: JSON.stringify({ lat, lon, species_id: speciesId, weather: wData })
+        });
+      } else {
+        throw new Error('Client weather data incomplete');
+      }
+    } catch (clientErr) {
+      console.warn("Client-side weather fetch failed, falling back to server:", clientErr);
+      response = await fetch(`${API_URL}/predict/point`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Fungi-Auth': secretPassword || ''
-        },
-        body: JSON.stringify({ lat, lon, species_id: speciesId, weather: wData })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, species_id: speciesId })
       });
     }
 
