@@ -1557,7 +1557,51 @@ window.flyToRecord = function (lat, lon, name, img, collector) {
 renderSpeciesCards();
 
 
+// ═══════════════════════════════════════════════════════════════
+// OFFLINE CACHE SYSTEM — localStorage-backed for hours of offline use
+// ═══════════════════════════════════════════════════════════════
+const CACHE_PREFIX = 'fungi_';
+const CACHE_TTL_WEATHER = 6 * 60 * 60 * 1000;  // 6 hours
+const CACHE_TTL_GRID = 6 * 60 * 60 * 1000;     // 6 hours
+const CACHE_TTL_POINT = 6 * 60 * 60 * 1000;    // 6 hours
+
+function cacheSet(key, data, ttl) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({
+      ts: Date.now(), ttl, data
+    }));
+  } catch (e) {
+    // localStorage full — clear old fungi entries and retry once
+    Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX)).forEach(k => {
+      try { const v = JSON.parse(localStorage.getItem(k)); if (v.ts + v.ttl < Date.now()) localStorage.removeItem(k); } catch(_){}
+    });
+    try { localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ ts: Date.now(), ttl, data })); } catch(_){}
+  }
+}
+
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const { ts, ttl, data } = JSON.parse(raw);
+    if (Date.now() - ts > ttl) { localStorage.removeItem(CACHE_PREFIX + key); return null; }
+    return data;
+  } catch (e) { return null; }
+}
+
+// In-memory grid cache (fast lookups during session)
 const gridCache = {};
+
+// Hydrate in-memory gridCache from localStorage on page load
+(function hydrateGridCache() {
+  Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX + 'grid_')).forEach(k => {
+    const cached = cacheGet(k.replace(CACHE_PREFIX, ''));
+    if (cached) {
+      const memKey = k.replace(CACHE_PREFIX + 'grid_', '');
+      gridCache[memKey] = cached;
+    }
+  });
+})();
 
 function updateMapPredictions() {
   const aggregatedFeatures = [];
@@ -1587,8 +1631,16 @@ async function loadRegionGrid() {
   const reqRegion = selectedRegion;
   const cacheKey = `${reqSpecies}_${reqRegion}`;
 
-  // Check cache first
+  // Check in-memory cache first (instant)
   if (gridCache[cacheKey]) {
+    updateMapPredictions();
+    return;
+  }
+
+  // Check localStorage cache (survives page refresh = offline)
+  const lsCached = cacheGet(`grid_${cacheKey}`);
+  if (lsCached) {
+    gridCache[cacheKey] = lsCached;
     updateMapPredictions();
     return;
   }
@@ -1610,12 +1662,17 @@ async function loadRegionGrid() {
         { lat: b.lat_max, lon: b.lon_max }
       ];
       
-      // Fetch weather for all 4 corners from the browser (sequential to avoid self-rate-limiting)
+      // Fetch weather for all 4 corners (check localStorage first)
       const results = [];
       for (const p of points) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&timezone=Europe%2FRome&forecast_days=8&past_days=14`;
-        const data = await fetch(url).then(r => r.json());
-        if (!data || !data.hourly || !data.hourly.temperature_2m) throw new Error('Bad weather data');
+        const wKey = `weather_${p.lat.toFixed(2)}_${p.lon.toFixed(2)}`;
+        let data = cacheGet(wKey);
+        if (!data) {
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&timezone=Europe%2FRome&forecast_days=8&past_days=14`;
+          data = await fetch(url).then(r => r.json());
+          if (!data || !data.hourly || !data.hourly.temperature_2m) throw new Error('Bad weather data');
+          cacheSet(wKey, data, CACHE_TTL_WEATHER);
+        }
         results.push({ lat: p.lat, lon: p.lon, data });
       }
       
@@ -1639,6 +1696,8 @@ async function loadRegionGrid() {
         type: 'FeatureCollection',
         features: geojson.features
       };
+      // Persist to localStorage for offline use
+      cacheSet(`grid_${cacheKey}`, gridCache[cacheKey], CACHE_TTL_GRID);
     } else {
       gridCache[cacheKey] = { type: 'FeatureCollection', features: [] };
     }
@@ -1709,24 +1768,36 @@ async function fetchPrediction(lat, lon, forcedScore = null) {
   try {
     let response;
     
+    // Check point prediction cache first (offline support)
+    const pointCacheKey = `point_${lat.toFixed(3)}_${lon.toFixed(3)}_${speciesId}`;
+    const cachedPoint = cacheGet(pointCacheKey);
+    if (cachedPoint && forcedScore === null) {
+      renderPrediction(cachedPoint);
+      return;
+    }
+
     // ALWAYS fetch weather client-side first (each user's browser IP avoids Render's shared-IP rate limits)
     try {
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&timezone=Europe%2FRome&forecast_days=8&past_days=14`;
-      const wData = await fetch(weatherUrl).then(r => r.json());
-
-      // Verify the data is valid (has hourly arrays)
-      if (wData && wData.hourly && wData.hourly.temperature_2m && wData.hourly.temperature_2m.length > 0) {
-        response = await fetch(`${API_URL}/predict/point_with_weather`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-Fungi-Auth': secretPassword || ''
-          },
-          body: JSON.stringify({ lat, lon, species_id: speciesId, weather: wData })
-        });
-      } else {
-        throw new Error('Client weather data incomplete');
+      const wKey = `weather_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+      let wData = cacheGet(wKey);
+      if (!wData) {
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&elevation=1000.0&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,precipitation,soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,wind_speed_10m,cloud_cover,snow_depth&timezone=Europe%2FRome&forecast_days=8&past_days=14`;
+        wData = await fetch(weatherUrl).then(r => r.json());
+        if (wData && wData.hourly && wData.hourly.temperature_2m && wData.hourly.temperature_2m.length > 0) {
+          cacheSet(wKey, wData, CACHE_TTL_WEATHER);
+        } else {
+          throw new Error('Client weather data incomplete');
+        }
       }
+
+      response = await fetch(`${API_URL}/predict/point_with_weather`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Fungi-Auth': secretPassword || ''
+        },
+        body: JSON.stringify({ lat, lon, species_id: speciesId, weather: wData })
+      });
     } catch (clientErr) {
       console.warn("Client-side weather fetch failed, falling back to server:", clientErr);
       response = await fetch(`${API_URL}/predict/point`, {
@@ -1744,6 +1815,9 @@ async function fetchPrediction(lat, lon, forcedScore = null) {
     if (forcedScore !== null) {
       data.score = forcedScore;
     }
+
+    // Cache the point prediction for offline use
+    cacheSet(pointCacheKey, data, CACHE_TTL_POINT);
 
     renderPrediction(data);
   } catch (err) {
